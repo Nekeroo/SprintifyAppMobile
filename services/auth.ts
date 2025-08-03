@@ -2,6 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LoginCredentials, RegisterCredentials, AuthResponse } from '../types/auth';
 
+
 const API_URL = 'http://sprintify.mathieugr.fr:3000/api';
 const TOKEN_KEY = '@auth_token';
 
@@ -51,22 +52,22 @@ export const authService = {
     }
   },
 
-  async isAuthenticated(): Promise<boolean> {
-    try {
-      const token = await AsyncStorage.getItem(TOKEN_KEY);
-      return !!token;
-    } catch (error) {
-      console.error('Auth check error:', error);
-      return false;
-    }
-  },
-
   async getToken(): Promise<string | null> {
     try {
       return await AsyncStorage.getItem(TOKEN_KEY);
     } catch (error) {
       console.error('Get token error:', error);
       return null;
+    }
+  },
+
+  async isAuthenticated(): Promise<boolean> {
+    try {
+      const token = await this.getToken();
+      return !!token;
+    } catch (error) {
+      console.error('Check auth error:', error);
+      return false;
     }
   }
 };

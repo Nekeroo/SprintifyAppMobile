@@ -5,7 +5,7 @@ import { Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { authService } from '../../services/auth';
 
-export default function AuthScreen() {
+function AuthScreen() {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [credentials, setCredentials] = useState({
@@ -243,3 +243,5 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+
+export default AuthScreen;
