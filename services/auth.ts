@@ -1,0 +1,72 @@
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LoginCredentials, RegisterCredentials, AuthResponse } from '../types/auth';
+
+const API_URL = 'http://sprintify.mathieugr.fr:3000/api';
+const TOKEN_KEY = '@auth_token';
+
+// Configure axios avec un intercepteur pour ajouter le token
+axios.interceptors.request.use(
+  async (config) => {
+    const token = await AsyncStorage.getItem(TOKEN_KEY);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+export const authService = {
+  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    try {
+      const response = await axios.post<AuthResponse>(`${API_URL}/auth/login`, credentials);
+      await AsyncStorage.setItem(TOKEN_KEY, response.data.token);
+      return response.data;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
+  },
+
+  async register(credentials: RegisterCredentials): Promise<AuthResponse> {
+    try {
+      const response = await axios.post<AuthResponse>(`${API_URL}/auth/register`, credentials);
+      await AsyncStorage.setItem(TOKEN_KEY, response.data.token);
+      return response.data;
+    } catch (error) {
+      console.error('Register error:', error);
+      throw error;
+    }
+  },
+
+  async logout(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(TOKEN_KEY);
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
+  },
+
+  async isAuthenticated(): Promise<boolean> {
+    try {
+      const token = await AsyncStorage.getItem(TOKEN_KEY);
+      return !!token;
+    } catch (error) {
+      console.error('Auth check error:', error);
+      return false;
+    }
+  },
+
+  async getToken(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(TOKEN_KEY);
+    } catch (error) {
+      console.error('Get token error:', error);
+      return null;
+    }
+  }
+};
