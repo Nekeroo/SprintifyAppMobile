@@ -7,6 +7,11 @@ interface CreateSprintData {
 
 const API_URL = 'http://sprintify.mathieugr.fr:3000/api';
 
+const formatDateForApi = (date: string): string => {
+  const [year, month, day] = date.split('T')[0].split('-');
+  return `${year}-${month}-${day}`;
+};
+
 export const sprintService = {
   createSprint: async (projectName: string, data: CreateSprintData): Promise<Response> => {
     const response = await fetch(`${API_URL}/sprints/${encodeURIComponent(projectName)}/add`, {
@@ -14,7 +19,11 @@ export const sprintService = {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        ...data,
+        startDate: formatDateForApi(data.startDate),
+        endDate: formatDateForApi(data.endDate),
+      }),
     });
 
     if (!response.ok) {

@@ -53,6 +53,12 @@ export default function CreateSprintScreen() {
 
     const [startDay, startMonth, startYear] = startDate.split('/');
     const [endDay, endMonth, endYear] = endDate.split('/');
+    
+    // Créer les dates sans conversion de timezone
+    const startDateStr = `${startYear}-${startMonth.padStart(2, '0')}-${startDay.padStart(2, '0')}T00:00:00.000Z`;
+    const endDateStr = `${endYear}-${endMonth.padStart(2, '0')}-${endDay.padStart(2, '0')}T00:00:00.000Z`;
+    
+    // Créer les objets Date pour la validation uniquement
     const startDateObj = new Date(parseInt(startYear), parseInt(startMonth) - 1, parseInt(startDay));
     const endDateObj = new Date(parseInt(endYear), parseInt(endMonth) - 1, parseInt(endDay));
 
@@ -65,8 +71,8 @@ export default function CreateSprintScreen() {
       await sprintService.createSprint(projectName as string, {
         name,
         description,
-        startDate: startDateObj.toISOString(),
-        endDate: endDateObj.toISOString(),
+        startDate: startDateStr,
+        endDate: endDateStr,
       });
       router.back();
     } catch (err) {
