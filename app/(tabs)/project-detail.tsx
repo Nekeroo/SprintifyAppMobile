@@ -34,7 +34,22 @@ export default function ProjectDetailScreen() {
         </View>
 
         <View style={styles.sprintsSection}>
-          <Text style={globalStyles.subtitle}>Sprints</Text>
+          <View style={styles.sprintsSectionHeader}>
+            <Text style={globalStyles.subtitle}>Sprints</Text>
+            <Pressable
+              style={({pressed}) => [
+                styles.createButton,
+                pressed && globalStyles.buttonPressed
+              ]}
+              onPress={() => router.push({
+                pathname: '/create-sprint',
+                params: { projectName: projectData.name }
+              })}
+            >
+              <FontAwesome name="plus" size={16} color={colors.text.primary} />
+              <Text style={styles.createButtonText}>Nouveau Sprint</Text>
+            </Pressable>
+          </View>
           {projectData.sprints.length === 0 ? (
             <Text style={[globalStyles.textSecondary, styles.noSprintsText]}>
               Aucun sprint pour ce projet
@@ -66,6 +81,12 @@ const styles = StyleSheet.create({
   sprintsSection: {
     padding: spacing.md,
   },
+  sprintsSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
   noSprintsText: {
     fontStyle: 'italic',
   },
@@ -79,5 +100,19 @@ const styles = StyleSheet.create({
     marginLeft: spacing.xs,
     color: colors.text.primary,
     fontSize: 16,
+  },
+  createButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 8,
+  },
+  createButtonText: {
+    marginLeft: spacing.xs,
+    color: colors.text.onPrimary,
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
