@@ -1,3 +1,5 @@
+import { Sprint } from "../types/sprint";
+
 interface CreateSprintData {
   name: string;
   description: string;
@@ -13,6 +15,16 @@ const formatDateForApi = (date: string): string => {
 };
 
 export const sprintService = {
+  getSprints: async (projectName: string): Promise<Sprint[]> => {
+    const response = await fetch(`${API_URL}/sprints/${encodeURIComponent(projectName)}`);
+    
+    if (!response.ok) {
+      throw new Error('Erreur lors de la récupération des sprints');
+    }
+
+    return response.json();
+  },
+
   createSprint: async (projectName: string, data: CreateSprintData): Promise<Response> => {
     const response = await fetch(`${API_URL}/sprints/${encodeURIComponent(projectName)}/add`, {
       method: 'POST',

@@ -74,7 +74,12 @@ export default function CreateSprintScreen() {
         startDate: startDateStr,
         endDate: endDateStr,
       });
-      router.back();
+
+      // Rediriger vers la page de détails du projet
+      router.replace({
+        pathname: '/project-detail',
+        params: { project: JSON.stringify({ projectName, sprints: [] }) }
+      });
     } catch (err) {
       setError(err.message);
     }

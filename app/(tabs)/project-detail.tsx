@@ -1,15 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, ScrollView, Pressable } from 'react-native';
 import { Text } from '@/components/Themed';
 import { Project } from '@/types/project';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { globalStyles, colors, spacing } from '@/styles/theme';
 import { FontAwesome } from '@expo/vector-icons';
+import { sprintService } from '@/services/sprint';
 
 export default function ProjectDetailScreen() {
   const { project } = useLocalSearchParams();
   const projectData: Project = JSON.parse(project as string);
   const router = useRouter();
+  const [sprints, setSprints] = useState(projectData.sprints);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const loadSprints = async () => {
+    try {
+      setIsLoading(true);
+      setError('');
+      const updatedSprints = await sprintService.getSprints(projectData.name);
+      setSprints(updatedSprints);
+    } catch (err) {
+      setError('Erreur lors du chargement des sprints');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSprints();
+  }, []);
 
   return (
     <View style={globalStyles.container}>
@@ -28,9 +50,7 @@ export default function ProjectDetailScreen() {
         <View style={[globalStyles.card, styles.header]}>
           <Text style={globalStyles.title}>{projectData.name}</Text>
           <Text style={globalStyles.textSecondary}>{projectData.description}</Text>
-          <Text style={globalStyles.textTertiary}>
-            Créé par: {projectData.owner.username}
-          </Text>
+          
         </View>
 
         <View style={styles.sprintsSection}>
@@ -50,12 +70,17 @@ export default function ProjectDetailScreen() {
               <Text style={styles.createButtonText}>Nouveau Sprint</Text>
             </Pressable>
           </View>
-          {projectData.sprints.length === 0 ? (
+
+          {isLoading ? (
+            <Text style={globalStyles.textSecondary}>Chargement des sprints...</Text>
+          ) : error ? (
+            <Text style={[globalStyles.textSecondary, { color: colors.error }]}>{error}</Text>
+          ) : sprints.length === 0 ? (
             <Text style={[globalStyles.textSecondary, styles.noSprintsText]}>
               Aucun sprint pour ce projet
             </Text>
           ) : (
-            projectData.sprints.map((sprint) => (
+            sprints.map((sprint) => (
               <View key={sprint.name} style={globalStyles.card}>
                 <Text style={globalStyles.subtitle}>{sprint.name}</Text>
                 <Text style={globalStyles.textSecondary}>
