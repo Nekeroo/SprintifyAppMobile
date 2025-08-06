@@ -6,23 +6,31 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { globalStyles, colors, spacing } from '@/styles/theme';
 import { FontAwesome } from '@expo/vector-icons';
 import { sprintService } from '@/services/sprint';
+import { projectService } from '@/services/project';
 
 export default function ProjectDetailScreen() {
-  const { project } = useLocalSearchParams();
-  const projectData: Project = JSON.parse(project as string);
+  const { project, reload } = useLocalSearchParams();
+  const initialProjectData: Project = JSON.parse(project as string);
   const router = useRouter();
-  const [sprints, setSprints] = useState(projectData.sprints);
+  const [projectData, setProjectData] = useState(initialProjectData);
+  const [sprints, setSprints] = useState(initialProjectData.sprints);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const loadSprints = async () => {
+  const loadProjectAndSprints = async () => {
     try {
       setIsLoading(true);
       setError('');
-      const updatedSprints = await sprintService.getSprints(projectData.name);
+      
+      // Charger les données à jour du projet
+      const updatedProject = await projectService.getProjectDetails(initialProjectData.name);
+      setProjectData(updatedProject);
+      
+      // Charger les sprints à jour
+      const updatedSprints = await sprintService.getSprints(initialProjectData.name);
       setSprints(updatedSprints);
     } catch (err) {
-      setError('Erreur lors du chargement des sprints');
+      setError('Erreur lors du chargement des données');
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -30,8 +38,9 @@ export default function ProjectDetailScreen() {
   };
 
   useEffect(() => {
-    loadSprints();
-  }, []);
+    // Recharger les données quand le projet change ou quand reload est true
+    loadProjectAndSprints();
+  }, [project, reload]);
 
   return (
     <View style={globalStyles.container}>
@@ -50,7 +59,11 @@ export default function ProjectDetailScreen() {
         <View style={[globalStyles.card, styles.header]}>
           <Text style={globalStyles.title}>{projectData.name}</Text>
           <Text style={globalStyles.textSecondary}>{projectData.description}</Text>
-          
+          {projectData.owner && (
+            <Text style={globalStyles.textTertiary}>
+              Créé par: {projectData.owner.username}
+            </Text>
+          )}
         </View>
 
         <View style={styles.sprintsSection}>
@@ -63,7 +76,10 @@ export default function ProjectDetailScreen() {
               ]}
               onPress={() => router.push({
                 pathname: '/create-sprint',
-                params: { projectName: projectData.name }
+                params: { 
+                  projectName: projectData.name,
+                  project: JSON.stringify(projectData)
+                }
               })}
             >
               <FontAwesome name="plus" size={16} color={colors.text.primary} />
@@ -72,7 +88,7 @@ export default function ProjectDetailScreen() {
           </View>
 
           {isLoading ? (
-            <Text style={globalStyles.textSecondary}>Chargement des sprints...</Text>
+            <Text style={globalStyles.textSecondary}>Chargement des données...</Text>
           ) : error ? (
             <Text style={[globalStyles.textSecondary, { color: colors.error }]}>{error}</Text>
           ) : sprints.length === 0 ? (

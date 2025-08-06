@@ -7,7 +7,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { sprintService } from '@/services/sprint';
 
 export default function CreateSprintScreen() {
-  const { projectName } = useLocalSearchParams();
+  const { projectName, project } = useLocalSearchParams();
   const router = useRouter();
   
   const [name, setName] = useState('');
@@ -78,7 +78,10 @@ export default function CreateSprintScreen() {
       // Rediriger vers la page de détails du projet
       router.replace({
         pathname: '/project-detail',
-        params: { project: JSON.stringify({ projectName, sprints: [] }) }
+        params: { 
+          project: project, // Réutiliser les données du projet
+          reload: 'true' // Forcer un rechargement des sprints
+        }
       });
     } catch (err) {
       setError(err.message);

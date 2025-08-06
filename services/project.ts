@@ -49,4 +49,26 @@ export const projectService = {
       throw error;
     }
   },
+
+  async getProjectDetails(projectName: string): Promise<Project> {
+    try {
+      const token = await authService.getToken();
+      if (!token) {
+        throw new Error('Non authentifié');
+      }
+
+      const response = await axios.get<Project>(`${API_URL}/projects/${encodeURIComponent(projectName)}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.data) {
+        throw new Error('Erreur lors de la récupération du projet');
+      }
+      return response.data;
+    } catch (error) {
+      console.error('Get project details error:', error);
+      throw error;
+    }
+  },
 };
