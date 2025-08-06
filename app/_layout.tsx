@@ -29,15 +29,24 @@ const useProtectedRoute = () => {
   }, []);
 
   const checkAuth = async () => {
-    const isAuthed = await authService.isAuthenticated();
-    setIsAuthenticated(isAuthed);
+    try {
+      const isAuthed = await authService.isAuthenticated();
+      if (isAuthed) {
+        await authService.getMe();
+      }
+      setIsAuthenticated(isAuthed);
 
-    const inAuthGroup = segments[0] === 'auth';
-    
-    if (!isAuthed && !inAuthGroup) {
+      const inAuthGroup = segments[0] === 'auth';
+      
+      if (!isAuthed && !inAuthGroup) {
+        router.replace('/auth');
+      } else if (isAuthed && inAuthGroup) {
+        router.replace('/(tabs)');
+      }
+    } catch (error) {
+      console.error('Check auth error:', error);
+      setIsAuthenticated(false);
       router.replace('/auth');
-    } else if (isAuthed && inAuthGroup) {
-      router.replace('/(tabs)');
     }
   };
 

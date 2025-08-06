@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, FlatList, View } from 'react-native';
+import { StyleSheet, FlatList, View, Pressable } from 'react-native';
 import { Text } from '@/components/Themed';
 import { Project } from '@/types/project';
 import { projectService } from '@/services/project';
+import { useRouter } from 'expo-router';
+import { globalStyles, colors, spacing } from '@/styles/theme';
 
 export default function ProjectsScreen() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const router = useRouter();
 
   useEffect(() => {
     loadProjects();
@@ -26,86 +30,101 @@ export default function ProjectsScreen() {
     }
   };
 
+  const handleProjectPress = (project: Project) => {
+    router.push({
+      pathname: '/(tabs)/project-detail',
+      params: {
+        project: JSON.stringify(project)
+      }
+    });
+  };
+
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={globalStyles.container}>
         <Text>Chargement...</Text>
+      </View>
+    );
+  }
+
+  if (!loading && projects.length === 0) {
+    return (
+      <View style={globalStyles.container}>
+        <Text>Aucun projet trouvé</Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>{error}</Text>
+      <View style={globalStyles.container}>
+        <Text style={globalStyles.errorText}>{error}</Text>
       </View>
     );
   }
 
   const renderProject = ({ item }: { item: Project }) => (
-    <View style={styles.projectCard}>
-      <Text style={styles.projectTitle}>{item.name}</Text>
-      <Text style={styles.projectDescription}>{item.description}</Text>
-      <Text style={styles.projectOwner}>
-        Créé par: {item.owner.username}
-      </Text>
-      <Text style={styles.sprintCount}>
-        Nombre de sprints: {item.sprints.length}
-      </Text>
-    </View>
+    <Pressable onPress={() => handleProjectPress(item)}>
+      <View style={[globalStyles.card, styles.projectCard]}>
+        <Text style={globalStyles.subtitle}>{item.name}</Text>
+        <Text style={globalStyles.textSecondary}>{item.description}</Text>
+        <Text style={globalStyles.textTertiary}>
+          Créé par: {item.owner.username}
+        </Text>
+        <Text style={globalStyles.textTertiary}>
+          Nombre de sprints: {item.sprints.length}
+        </Text>
+      </View>
+    </Pressable>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={globalStyles.container}>
       <FlatList
         data={projects}
         renderItem={renderProject}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.name}
         contentContainerStyle={styles.listContainer}
       />
+      <Pressable 
+        style={({pressed}) => [
+          styles.createButton,
+          pressed && globalStyles.buttonPressed
+        ]}
+        onPress={() => router.push('/(tabs)/create-project')}
+      >
+        <Text style={styles.createButtonText}>+</Text>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
   listContainer: {
-    gap: 16,
+    gap: spacing.md,
   },
   projectCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    shadowColor: '#000',
+    marginBottom: 0, // Override globalStyles.card marginBottom
+  },
+  createButton: {
+    position: 'absolute',
+    right: spacing.md,
+    bottom: spacing.md,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.25,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 5,
   },
-  projectTitle: {
-    fontSize: 18,
+  createButtonText: {
+    color: colors.background,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  projectDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  projectOwner: {
-    fontSize: 12,
-    color: '#888',
-  },
-  sprintCount: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 4,
-  },
-  errorText: {
-    color: 'red',
-    textAlign: 'center',
   },
 });

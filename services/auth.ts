@@ -20,6 +20,17 @@ axios.interceptors.request.use(
   }
 );
 
+// Intercepteur pour gérer les réponses 401
+axios.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      await AsyncStorage.removeItem(TOKEN_KEY);
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const authService = {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
@@ -34,10 +45,14 @@ export const authService = {
 
   async register(credentials: RegisterCredentials): Promise<AuthResponse> {
     try {
-      const response = await axios.post<AuthResponse>(`${API_URL}/auth/register`, credentials);
+      const response = await axios.post<AuthResponse>(`${API_URL}/auth/register`, credentials, {
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
       await AsyncStorage.setItem(TOKEN_KEY, response.data.token);
       return response.data;
-    } catch (error) {
+    } catch (error) { 
       console.error('Register error:', error);
       throw error;
     }
@@ -68,6 +83,16 @@ export const authService = {
     } catch (error) {
       console.error('Check auth error:', error);
       return false;
+    }
+  },
+
+  async getMe(): Promise<any> {
+    try {
+      const response = await axios.get(`${API_URL}/auth/me`);
+      return response.data;
+    } catch (error) {
+      console.error('Get me error:', error);
+      throw error;
     }
   }
 };
