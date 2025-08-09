@@ -1,7 +1,7 @@
-import { Project } from "./project";
+import { ProjectOverview } from "./project";
 
 export interface Sprint {
-    project: Project;
+    project: ProjectOverview;
     name: string;
     startDate: Date;
     endDate: Date;

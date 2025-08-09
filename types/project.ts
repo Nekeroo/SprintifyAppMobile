@@ -1,9 +1,8 @@
 import { User } from "./auth";
 import { Sprint } from "./sprint";
 
-export interface Project {
+export interface ProjectOverview {
     name: string;
-    description: string;
-    owner: User;
-    sprints: Sprint[];
-  }
+    usernameOwner: string,
+    nbSprint: number
+}

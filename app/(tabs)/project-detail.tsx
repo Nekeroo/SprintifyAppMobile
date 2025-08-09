@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, ScrollView, Pressable } from 'react-native';
 import { Text } from '@/components/Themed';
-import { Project } from '@/types/project';
+import { ProjectOverview } from '@/types/project';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { globalStyles, colors, spacing } from '@/styles/theme';
 import { FontAwesome } from '@expo/vector-icons';
@@ -10,7 +10,7 @@ import { projectService } from '@/services/project';
 
 export default function ProjectDetailScreen() {
   const { project, reload } = useLocalSearchParams();
-  const initialProjectData: Project = JSON.parse(project as string);
+  const initialProjectData: ProjectOverview = JSON.parse(project as string);
   const router = useRouter();
   const [projectData, setProjectData] = useState(initialProjectData);
   const [sprints, setSprints] = useState(initialProjectData.sprints);

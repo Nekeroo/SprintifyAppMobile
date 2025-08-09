@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, FlatList, View, Pressable } from 'react-native';
 import { Text } from '@/components/Themed';
-import { Project } from '@/types/project';
+import { ProjectOverview } from '@/types/project';
 import { projectService } from '@/services/project';
 import { useRouter } from 'expo-router';
 import { globalStyles, colors, spacing } from '@/styles/theme';
 
 export default function ProjectsScreen() {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ProjectOverview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,7 +30,7 @@ export default function ProjectsScreen() {
     }
   };
 
-  const handleProjectPress = (project: Project) => {
+  const handleProjectPress = (project: ProjectOverview) => {
     router.push({
       pathname: '/(tabs)/project-detail',
       params: {
@@ -63,16 +63,15 @@ export default function ProjectsScreen() {
     );
   }
 
-  const renderProject = ({ item }: { item: Project }) => (
+  const renderProject = ({ item }: { item: ProjectOverview }) => (
     <Pressable onPress={() => handleProjectPress(item)}>
       <View style={[globalStyles.card, styles.projectCard]}>
         <Text style={globalStyles.subtitle}>{item.name}</Text>
-        <Text style={globalStyles.textSecondary}>{item.description}</Text>
         <Text style={globalStyles.textTertiary}>
-          Créé par: {item.owner.username}
+          Créé par: {item.usernameOwner}
         </Text>
         <Text style={globalStyles.textTertiary}>
-          Nombre de sprints: {item.sprints.length}
+          Nombre de sprints: {item.nbSprint}
         </Text>
       </View>
     </Pressable>
