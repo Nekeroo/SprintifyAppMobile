@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ProjectOverview } from '@/types/project';
+import { ProjectDetails, ProjectOverview } from '@/types/project';
 import { authService } from './auth';
 import { User } from '@/types/user';
 
@@ -50,14 +50,14 @@ export const projectService = {
     }
   },
 
-  async getProjectDetails(projectName: string): Promise<ProjectOverview> {
+  async getProjectDetails(projectName: string): Promise<ProjectDetails> {
     try {
       const token = await authService.getToken();
       if (!token) {
         throw new Error('Non authentifié');
       }
 
-      const response = await axios.get<ProjectOverview>(`${API_URL}/projects/${encodeURIComponent(projectName)}`, {
+      const response = await axios.get<ProjectDetails>(`${API_URL}/projects/${encodeURIComponent(projectName)}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

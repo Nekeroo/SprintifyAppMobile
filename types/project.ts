@@ -6,3 +6,10 @@ export interface ProjectOverview {
     usernameOwner: string,
     nbSprint: number
 }
+  
+export interface ProjectDetails {
+    name: string;
+    description: string;
+    owner: User;
+    sprints: Sprint[];
+}

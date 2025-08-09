@@ -34,7 +34,7 @@ export default function ProjectsScreen() {
     router.push({
       pathname: '/(tabs)/project-detail',
       params: {
-        project: JSON.stringify(project)
+        project: project.name
       }
     });
   };

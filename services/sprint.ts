@@ -1,4 +1,4 @@
-import { Sprint } from "../types/sprint";
+import { Sprint, SprintOverview } from "../types/sprint";
 
 interface CreateSprintData {
   name: string;
@@ -15,7 +15,7 @@ const formatDateForApi = (date: string): string => {
 };
 
 export const sprintService = {
-  getSprints: async (projectName: string): Promise<Sprint[]> => {
+  getSprints: async (projectName: string): Promise<SprintOverview[]> => {
     const response = await fetch(`${API_URL}/sprints/${encodeURIComponent(projectName)}`);
     
     if (!response.ok) {
