@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, Modal
 import { Task } from '@/types/task';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, globalStyles } from '@/styles/theme';
+import { getTodayString, getTomorrowString, getNextWeekString, dateToString, displayDateToApi, isoToDisplayDate } from '@/services/dateUtils';
 
 interface EditTaskModalProps {
   visible: boolean;
@@ -141,7 +142,7 @@ const EditTaskModal = ({
             >
               <Text>
                 {editedTask.dueDate 
-                  ? new Date(editedTask.dueDate).toLocaleDateString() 
+                  ? isoToDisplayDate(editedTask.dueDate) 
                   : 'Aucune date définie'}
               </Text>
               <FontAwesome name="calendar" size={16} color={colors.text.secondary} />
@@ -158,8 +159,8 @@ const EditTaskModal = ({
                       pressed && globalStyles.buttonPressed
                     ]}
                     onPress={() => {
-                      const today = new Date();
-                      setEditedTask({...editedTask, dueDate: today.toISOString()});
+                      const todayIso = displayDateToApi(getTodayString());
+                      setEditedTask({...editedTask, dueDate: todayIso});
                       setShowDueDatePicker(false);
                     }}
                   >
@@ -172,9 +173,8 @@ const EditTaskModal = ({
                       pressed && globalStyles.buttonPressed
                     ]}
                     onPress={() => {
-                      const tomorrow = new Date();
-                      tomorrow.setDate(tomorrow.getDate() + 1);
-                      setEditedTask({...editedTask, dueDate: tomorrow.toISOString()});
+                      const tomorrowIso = displayDateToApi(getTomorrowString());
+                      setEditedTask({...editedTask, dueDate: tomorrowIso});
                       setShowDueDatePicker(false);
                     }}
                   >
@@ -187,9 +187,8 @@ const EditTaskModal = ({
                       pressed && globalStyles.buttonPressed
                     ]}
                     onPress={() => {
-                      const nextWeek = new Date();
-                      nextWeek.setDate(nextWeek.getDate() + 7);
-                      setEditedTask({...editedTask, dueDate: nextWeek.toISOString()});
+                      const nextWeekIso = displayDateToApi(getNextWeekString());
+                      setEditedTask({...editedTask, dueDate: nextWeekIso});
                       setShowDueDatePicker(false);
                     }}
                   >
@@ -206,7 +205,7 @@ const EditTaskModal = ({
                       setShowDueDatePicker(false);
                     }}
                   >
-                    <Text style={styles.dateOptionText}>Aucune date</Text>
+                    <Text style={styles.dateOptionText}>Aucune</Text>
                   </Pressable>
                 </View>
                 

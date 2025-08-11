@@ -3,432 +3,438 @@ import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, Modal
 import { Task } from '@/types/task';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, globalStyles } from '@/styles/theme';
+import {
+    getTodayString,
+    getTomorrowString,
+    getNextWeekString,
+    dateToString,
+    displayDateToApi,
+    isoToDisplayDate
+} from '@/services/dateUtils';
 
 interface CreateTaskModalProps {
-  visible: boolean;
-  onClose: () => void;
-  onCreate: (newTask: Omit<Task, 'id'>) => Promise<void>;
-  isCreating: boolean;
-  createError: string;
-  sprintName: string;
+    visible: boolean;
+    onClose: () => void;
+    onCreate: (newTask: Omit<Task, 'id'>) => Promise<void>;
+    isCreating: boolean;
+    createError: string;
+    sprintName: string;
 }
 
-const CreateTaskModal = ({ 
-  visible, 
-  onClose, 
-  onCreate, 
-  isCreating, 
-  createError,
-  sprintName
+const CreateTaskModal = ({
+    visible,
+    onClose,
+    onCreate,
+    isCreating,
+    createError,
+    sprintName
 }: CreateTaskModalProps) => {
-  const [newTask, setNewTask] = useState<Omit<Task, 'id'>>({
-    title: '',
-    description: '',
-    status: 'TODO',
-    dueDate: '',
-    usernameAssignee: '',
-    storyPoints: 1
-  });
-  const [showDueDatePicker, setShowDueDatePicker] = useState(false);
-  
-  // Reset form when modal opens/closes
-  React.useEffect(() => {
-    if (!visible) {
-      setNewTask({
+    const [newTask, setNewTask] = useState<Omit<Task, 'id'>>({
         title: '',
         description: '',
         status: 'TODO',
         dueDate: '',
         usernameAssignee: '',
         storyPoints: 1
-      });
-    }
-  }, [visible]);
+    });
+    const [showDueDatePicker, setShowDueDatePicker] = useState(false);
 
-  const handleCreate = async () => {
-    await onCreate(newTask);
-  };
+    // Reset form when modal opens/closes
+    React.useEffect(() => {
+        if (!visible) {
+            setNewTask({
+                title: '',
+                description: '',
+                status: 'TODO',
+                dueDate: '',
+                usernameAssignee: '',
+                storyPoints: 1
+            });
+        }
+    }, [visible]);
 
-  return (
-    <Modal
-      animationType="slide"
-      transparent={false}
-      visible={visible}
-      onRequestClose={onClose}
-      presentationStyle="pageSheet"
-    >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalView}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Nouvelle tâche</Text>
-            <Pressable
-              style={({pressed}) => [
-                styles.closeButton,
-                pressed && globalStyles.buttonPressed
-              ]}
-              onPress={onClose}
-            >
-              <FontAwesome name="times" size={24} color={colors.text.secondary} />
-            </Pressable>
-          </View>
-          
-          <ScrollView style={styles.modalContent}>
-            <Text style={styles.inputLabel}>Sprint</Text>
-            <View style={styles.sprintIndicator}>
-              <Text>{sprintName}</Text>
-            </View>
-            
-            <Text style={styles.inputLabel}>Titre *</Text>
-            <TextInput
-              style={styles.input}
-              value={newTask.title}
-              onChangeText={(text) => setNewTask({...newTask, title: text})}
-              placeholder="Titre de la tâche"
-            />
-            
-            <Text style={styles.inputLabel}>Description</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={newTask.description}
-              onChangeText={(text) => setNewTask({...newTask, description: text})}
-              placeholder="Description de la tâche"
-              multiline
-              numberOfLines={4}
-            />
-            
-            <Text style={styles.inputLabel}>Assigné à</Text>
-            <TextInput
-              style={styles.input}
-              value={newTask.usernameAssignee}
-              onChangeText={(text) => setNewTask({...newTask, usernameAssignee: text})}
-              placeholder="Username de l'assigné"
-            />
-            
-            <Text style={styles.inputLabel}>Points de story</Text>
-            <View style={styles.pointsSelector}>
-              {[1, 2, 3, 5, 8, 13].map((points) => (
-                <Pressable
-                  key={points}
-                  style={({pressed}) => [
-                    styles.pointsOption,
-                    newTask.storyPoints === points && styles.selectedPoints,
-                    pressed && globalStyles.buttonPressed
-                  ]}
-                  onPress={() => setNewTask({...newTask, storyPoints: points})}
-                >
-                  <Text
-                    style={[
-                      styles.pointsText,
-                      newTask.storyPoints === points && styles.selectedPointsText
-                    ]}
-                  >
-                    {points}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            
-            <Text style={styles.inputLabel}>Date d'échéance</Text>
-            <Pressable
-              style={styles.datePickerButton}
-              onPress={() => setShowDueDatePicker(!showDueDatePicker)}
-            >
-              <Text>
-                {newTask.dueDate 
-                  ? new Date(newTask.dueDate).toLocaleDateString() 
-                  : 'Aucune date définie'}
-              </Text>
-              <FontAwesome name="calendar" size={16} color={colors.text.secondary} />
-            </Pressable>
-            
-            {showDueDatePicker && (
-              <View style={styles.datePickerContainer}>
-                <Text style={styles.datePickerTitle}>Sélectionner une date</Text>
-                
-                <View style={styles.dateOptions}>
-                  <Pressable
-                    style={({pressed}) => [
-                      styles.dateOption,
-                      pressed && globalStyles.buttonPressed
-                    ]}
-                    onPress={() => {
-                      const today = new Date();
-                      setNewTask({...newTask, dueDate: today.toISOString()});
-                      setShowDueDatePicker(false);
-                    }}
-                  >
-                    <Text style={styles.dateOptionText}>Aujourd'hui</Text>
-                  </Pressable>
-                  
-                  <Pressable
-                    style={({pressed}) => [
-                      styles.dateOption,
-                      pressed && globalStyles.buttonPressed
-                    ]}
-                    onPress={() => {
-                      const tomorrow = new Date();
-                      tomorrow.setDate(tomorrow.getDate() + 1);
-                      setNewTask({...newTask, dueDate: tomorrow.toISOString()});
-                      setShowDueDatePicker(false);
-                    }}
-                  >
-                    <Text style={styles.dateOptionText}>Demain</Text>
-                  </Pressable>
-                  
-                  <Pressable
-                    style={({pressed}) => [
-                      styles.dateOption,
-                      pressed && globalStyles.buttonPressed
-                    ]}
-                    onPress={() => {
-                      const nextWeek = new Date();
-                      nextWeek.setDate(nextWeek.getDate() + 7);
-                      setNewTask({...newTask, dueDate: nextWeek.toISOString()});
-                      setShowDueDatePicker(false);
-                    }}
-                  >
-                    <Text style={styles.dateOptionText}>Dans 1 semaine</Text>
-                  </Pressable>
-                  
-                  <Pressable
-                    style={({pressed}) => [
-                      styles.dateOption,
-                      pressed && globalStyles.buttonPressed
-                    ]}
-                    onPress={() => {
-                      setNewTask({...newTask, dueDate: ''});
-                      setShowDueDatePicker(false);
-                    }}
-                  >
-                    <Text style={styles.dateOptionText}>Aucune date</Text>
-                  </Pressable>
+    const handleCreate = async () => {
+        await onCreate(newTask);
+    };
+
+    return (
+        <Modal
+            animationType="slide"
+            transparent={false}
+            visible={visible}
+            onRequestClose={onClose}
+            presentationStyle="pageSheet"
+        >
+            <View style={styles.modalContainer}>
+                <View style={styles.modalView}>
+                    <View style={styles.modalHeader}>
+                        <Text style={styles.modalTitle}>Nouvelle tâche</Text>
+                        <Pressable
+                            style={({ pressed }) => [
+                                styles.closeButton,
+                                pressed && globalStyles.buttonPressed
+                            ]}
+                            onPress={onClose}
+                        >
+                            <FontAwesome name="times" size={24} color={colors.text.secondary} />
+                        </Pressable>
+                    </View>
+
+                    <ScrollView style={styles.modalContent}>
+                        <Text style={styles.inputLabel}>Sprint</Text>
+                        <View style={styles.sprintIndicator}>
+                            <Text>{sprintName}</Text>
+                        </View>
+
+                        <Text style={styles.inputLabel}>Titre *</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={newTask.title}
+                            onChangeText={(text) => setNewTask({ ...newTask, title: text })}
+                            placeholder="Titre de la tâche"
+                        />
+
+                        <Text style={styles.inputLabel}>Description</Text>
+                        <TextInput
+                            style={[styles.input, styles.textArea]}
+                            value={newTask.description}
+                            onChangeText={(text) => setNewTask({ ...newTask, description: text })}
+                            placeholder="Description de la tâche"
+                            multiline
+                            numberOfLines={4}
+                        />
+
+                        <Text style={styles.inputLabel}>Assigné à</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={newTask.usernameAssignee}
+                            onChangeText={(text) => setNewTask({ ...newTask, usernameAssignee: text })}
+                            placeholder="Username de l'assigné"
+                        />
+
+                        <Text style={styles.inputLabel}>Points de story</Text>
+                        <View style={styles.pointsSelector}>
+                            {[1, 2, 3, 5, 8, 13].map((points) => (
+                                <Pressable
+                                    key={points}
+                                    style={({ pressed }) => [
+                                        styles.pointsOption,
+                                        newTask.storyPoints === points && styles.selectedPoints,
+                                        pressed && globalStyles.buttonPressed
+                                    ]}
+                                    onPress={() => setNewTask({ ...newTask, storyPoints: points })}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.pointsText,
+                                            newTask.storyPoints === points && styles.selectedPointsText
+                                        ]}
+                                    >
+                                        {points}
+                                    </Text>
+                                </Pressable>
+                            ))}
+                        </View>
+
+                        <Text style={styles.inputLabel}>Date d'échéance</Text>
+                        <Pressable
+                            style={styles.datePickerButton}
+                            onPress={() => setShowDueDatePicker(!showDueDatePicker)}
+                        >
+                            <Text>
+                                {newTask.dueDate
+                                    ? isoToDisplayDate(newTask.dueDate)
+                                    : 'Aucune date définie'}
+                            </Text>
+                            <FontAwesome name="calendar" size={16} color={colors.text.secondary} />
+                        </Pressable>
+
+                        {showDueDatePicker && (
+                            <View style={styles.datePickerContainer}>
+                                <Text style={styles.datePickerTitle}>Sélectionner une date</Text>
+
+                                <View style={styles.dateOptions}>
+                                    <Pressable
+                                        style={({ pressed }) => [
+                                            styles.dateOption,
+                                            pressed && globalStyles.buttonPressed
+                                        ]}
+                                        onPress={() => {
+                                            const todayApi = displayDateToApi(getTodayString());
+                                            setNewTask({ ...newTask, dueDate: todayApi });
+                                            setShowDueDatePicker(false);
+                                        }}
+                                    >
+                                        <Text style={styles.dateOptionText}>Aujourd'hui</Text>
+                                    </Pressable>
+
+                                    <Pressable
+                                        style={({ pressed }) => [
+                                            styles.dateOption,
+                                            pressed && globalStyles.buttonPressed
+                                        ]}
+                                        onPress={() => {
+                                            const tomorrowApi = displayDateToApi(getTomorrowString());
+                                            setNewTask({ ...newTask, dueDate: tomorrowApi });
+                                            setShowDueDatePicker(false);
+                                        }}
+                                    >
+                                        <Text style={styles.dateOptionText}>Demain</Text>
+                                    </Pressable>
+
+                                    <Pressable
+                                        style={({ pressed }) => [
+                                            styles.dateOption,
+                                            pressed && globalStyles.buttonPressed
+                                        ]}
+                                        onPress={() => {
+                                            const nextWeekApi = displayDateToApi(getNextWeekString());
+                                            setNewTask({ ...newTask, dueDate: nextWeekApi });
+                                            setShowDueDatePicker(false);
+                                        }}
+                                    >
+                                        <Text style={styles.dateOptionText}>Dans 1 semaine</Text>
+                                    </Pressable>
+
+                                    <Pressable
+                                        style={({ pressed }) => [
+                                            styles.dateOption,
+                                            pressed && globalStyles.buttonPressed
+                                        ]}
+                                        onPress={() => {
+                                            setNewTask({ ...newTask, dueDate: '' });
+                                            setShowDueDatePicker(false);
+                                        }}
+                                    >
+                                        <Text style={styles.dateOptionText}>Aucune</Text>
+                                    </Pressable>
+                                </View>
+
+                                <Pressable
+                                    style={({ pressed }) => [
+                                        styles.cancelDateButton,
+                                        pressed && globalStyles.buttonPressed
+                                    ]}
+                                    onPress={() => setShowDueDatePicker(false)}
+                                >
+                                    <Text style={styles.cancelDateButtonText}>Fermer</Text>
+                                </Pressable>
+                            </View>
+                        )}
+
+                        {createError ? (
+                            <Text style={styles.errorText}>{createError}</Text>
+                        ) : null}
+
+                        <Text style={styles.requiredFieldNote}>* Champ obligatoire</Text>
+                    </ScrollView>
+
+                    <View style={styles.modalFooter}>
+                        <Pressable
+                            style={({ pressed }) => [
+                                styles.cancelButton,
+                                pressed && globalStyles.buttonPressed
+                            ]}
+                            onPress={onClose}
+                        >
+                            <Text style={styles.cancelButtonText}>Annuler</Text>
+                        </Pressable>
+
+                        <Pressable
+                            style={({ pressed }) => [
+                                styles.createButton,
+                                (!newTask.title || isCreating) && styles.createButtonDisabled,
+                                pressed && newTask.title && !isCreating && globalStyles.buttonPressed
+                            ]}
+                            onPress={handleCreate}
+                            disabled={!newTask.title || isCreating}
+                        >
+                            {isCreating ? (
+                                <ActivityIndicator size="small" color={colors.text.onPrimary} />
+                            ) : (
+                                <Text style={styles.createButtonText}>Créer</Text>
+                            )}
+                        </Pressable>
+                    </View>
                 </View>
-                
-                <Pressable
-                  style={({pressed}) => [
-                    styles.cancelDateButton,
-                    pressed && globalStyles.buttonPressed
-                  ]}
-                  onPress={() => setShowDueDatePicker(false)}
-                >
-                  <Text style={styles.cancelDateButtonText}>Fermer</Text>
-                </Pressable>
-              </View>
-            )}
-            
-            {createError ? (
-              <Text style={styles.errorText}>{createError}</Text>
-            ) : null}
-            
-            <Text style={styles.requiredFieldNote}>* Champ obligatoire</Text>
-          </ScrollView>
-          
-          <View style={styles.modalFooter}>
-            <Pressable
-              style={({pressed}) => [
-                styles.cancelButton,
-                pressed && globalStyles.buttonPressed
-              ]}
-              onPress={onClose}
-            >
-              <Text style={styles.cancelButtonText}>Annuler</Text>
-            </Pressable>
-            
-            <Pressable
-              style={({pressed}) => [
-                styles.createButton,
-                (!newTask.title || isCreating) && styles.createButtonDisabled,
-                pressed && newTask.title && !isCreating && globalStyles.buttonPressed
-              ]}
-              onPress={handleCreate}
-              disabled={!newTask.title || isCreating}
-            >
-              {isCreating ? (
-                <ActivityIndicator size="small" color={colors.text.onPrimary} />
-              ) : (
-                <Text style={styles.createButtonText}>Créer</Text>
-              )}
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
+            </View>
+        </Modal>
+    );
 };
 
 const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-  },
-  modalView: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-    overflow: 'hidden',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-  },
-  closeButton: {
-    padding: spacing.xs,
-  },
-  modalContent: {
-    padding: spacing.md,
-    paddingBottom: spacing.lg,
-    flex: 1,
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.background.primary,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: spacing.xs,
-    color: colors.text.primary,
-  },
-  input: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: 4,
-    padding: spacing.sm,
-    marginBottom: spacing.md,
-    color: colors.text.primary,
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  sprintIndicator: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: 4,
-    padding: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  datePickerButton: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: 4,
-    padding: spacing.sm,
-    marginBottom: spacing.md,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  errorText: {
-    color: colors.error,
-    marginBottom: spacing.md,
-  },
-  requiredFieldNote: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  createButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 4,
-    minWidth: 100,
-    alignItems: 'center',
-  },
-  createButtonDisabled: {
-    opacity: 0.5,
-  },
-  createButtonText: {
-    color: colors.text.onPrimary,
-    fontWeight: '500',
-  },
-  cancelButton: {
-    backgroundColor: colors.background.secondary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 4,
-  },
-  cancelButtonText: {
-    color: colors.text.primary,
-  },
-  pointsSelector: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: spacing.md,
-  },
-  pointsOption: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.background.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  selectedPoints: {
-    backgroundColor: colors.primary,
-  },
-  pointsText: {
-    color: colors.text.primary,
-    fontWeight: 'bold',
-  },
-  selectedPointsText: {
-    color: colors.text.onPrimary,
-  },
-  datePickerContainer: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: 8,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  datePickerTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: spacing.md,
-    color: colors.text.primary,
-    textAlign: 'center',
-  },
-  dateOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  dateOption: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.background.tertiary,
-    borderRadius: 4,
-    margin: spacing.xs,
-    minWidth: 110,
-    alignItems: 'center',
-  },
-  dateOptionText: {
-    color: colors.text.primary,
-    fontWeight: '500',
-  },
-  cancelDateButton: {
-    alignSelf: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: 4,
-  },
-  cancelDateButtonText: {
-    color: colors.text.onPrimary,
-    fontWeight: '500',
-  },
+    modalContainer: {
+        flex: 1,
+        backgroundColor: colors.background.primary,
+    },
+    modalView: {
+        flex: 1,
+        backgroundColor: colors.background.primary,
+        overflow: 'hidden',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: spacing.md,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: colors.text.primary,
+    },
+    closeButton: {
+        padding: spacing.xs,
+    },
+    modalContent: {
+        padding: spacing.md,
+        paddingBottom: spacing.lg,
+        flex: 1,
+    },
+    modalFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        padding: spacing.md,
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
+        backgroundColor: colors.background.primary,
+    },
+    inputLabel: {
+        fontSize: 16,
+        fontWeight: '500',
+        marginBottom: spacing.xs,
+        color: colors.text.primary,
+    },
+    input: {
+        backgroundColor: colors.background.secondary,
+        borderRadius: 4,
+        padding: spacing.sm,
+        marginBottom: spacing.md,
+        color: colors.text.primary,
+    },
+    textArea: {
+        height: 100,
+        textAlignVertical: 'top',
+    },
+    sprintIndicator: {
+        backgroundColor: colors.background.secondary,
+        borderRadius: 4,
+        padding: spacing.sm,
+        marginBottom: spacing.md,
+    },
+    datePickerButton: {
+        backgroundColor: colors.background.secondary,
+        borderRadius: 4,
+        padding: spacing.sm,
+        marginBottom: spacing.md,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    errorText: {
+        color: colors.error,
+        marginBottom: spacing.md,
+    },
+    requiredFieldNote: {
+        fontSize: 12,
+        color: colors.text.secondary,
+        marginTop: spacing.sm,
+        marginBottom: spacing.md,
+    },
+    createButton: {
+        backgroundColor: colors.primary,
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        borderRadius: 4,
+        minWidth: 100,
+        alignItems: 'center',
+    },
+    createButtonDisabled: {
+        opacity: 0.5,
+    },
+    createButtonText: {
+        color: colors.text.onPrimary,
+        fontWeight: '500',
+    },
+    cancelButton: {
+        backgroundColor: colors.background.secondary,
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        borderRadius: 4,
+    },
+    cancelButtonText: {
+        color: colors.text.primary,
+    },
+    pointsSelector: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        marginBottom: spacing.md,
+    },
+    pointsOption: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: colors.background.secondary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: spacing.sm,
+        marginBottom: spacing.sm,
+    },
+    selectedPoints: {
+        backgroundColor: colors.primary,
+    },
+    pointsText: {
+        color: colors.text.primary,
+        fontWeight: 'bold',
+    },
+    selectedPointsText: {
+        color: colors.text.onPrimary,
+    },
+    datePickerContainer: {
+        backgroundColor: colors.background.secondary,
+        borderRadius: 8,
+        padding: spacing.md,
+        marginBottom: spacing.md,
+    },
+    datePickerTitle: {
+        fontSize: 16,
+        fontWeight: '500',
+        marginBottom: spacing.md,
+        color: colors.text.primary,
+        textAlign: 'center',
+    },
+    dateOptions: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        marginBottom: spacing.md,
+    },
+    dateOption: {
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        backgroundColor: colors.background.tertiary,
+        borderRadius: 4,
+        margin: spacing.xs,
+        minWidth: 110,
+        alignItems: 'center',
+    },
+    dateOptionText: {
+        color: colors.text.primary,
+        fontWeight: '500',
+    },
+    cancelDateButton: {
+        alignSelf: 'center',
+        backgroundColor: colors.primary,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.sm,
+        borderRadius: 4,
+    },
+    cancelDateButtonText: {
+        color: colors.text.onPrimary,
+        fontWeight: '500',
+    },
 });
 
 export default CreateTaskModal;

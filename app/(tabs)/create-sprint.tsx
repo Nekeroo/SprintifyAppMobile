@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { globalStyles, colors, spacing } from '@/styles/theme';
 import { FontAwesome } from '@expo/vector-icons';
 import { sprintService } from '@/services/sprint';
+import { formatDate, isValidDate, displayDateToIso } from '@/services/dateUtils';
 
 export default function CreateSprintScreen() {
   const { projectName, project } = useLocalSearchParams();
@@ -15,30 +16,6 @@ export default function CreateSprintScreen() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [error, setError] = useState('');
-
-  const formatDate = (input: string): string => {
-    // Enlever tous les caractères non numériques
-    const numbers = input.replace(/\D/g, '');
-    
-    // Format JJ/MM/AAAA
-    if (numbers.length <= 2) return numbers;
-    if (numbers.length <= 4) return `${numbers.slice(0, 2)}/${numbers.slice(2)}`;
-    return `${numbers.slice(0, 2)}/${numbers.slice(2, 4)}/${numbers.slice(4, 8)}`;
-  };
-
-  const isValidDate = (dateStr: string): boolean => {
-    const parts = dateStr.split('/');
-    if (parts.length !== 3) return false;
-    
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const year = parseInt(parts[2], 10);
-    
-    const date = new Date(year, month, day);
-    return date.getDate() === day && 
-           date.getMonth() === month && 
-           date.getFullYear() === year;
-  };
 
   const handleCreateSprint = async () => {
     if (!name.trim()) {
@@ -51,18 +28,10 @@ export default function CreateSprintScreen() {
       return;
     }
 
-    const [startDay, startMonth, startYear] = startDate.split('/');
-    const [endDay, endMonth, endYear] = endDate.split('/');
-    
-    // Créer les dates sans conversion de timezone
-    const startDateStr = `${startYear}-${startMonth.padStart(2, '0')}-${startDay.padStart(2, '0')}T00:00:00.000Z`;
-    const endDateStr = `${endYear}-${endMonth.padStart(2, '0')}-${endDay.padStart(2, '0')}T00:00:00.000Z`;
-    
-    // Créer les objets Date pour la validation uniquement
-    const startDateObj = new Date(parseInt(startYear), parseInt(startMonth) - 1, parseInt(startDay));
-    const endDateObj = new Date(parseInt(endYear), parseInt(endMonth) - 1, parseInt(endDay));
+    const startDateStr = displayDateToIso(startDate);
+    const endDateStr = displayDateToIso(endDate);
 
-    if (endDateObj < startDateObj) {
+    if (new Date(endDateStr) < new Date(startDateStr)) {
       setError('La date de fin doit être après la date de début');
       return;
     }

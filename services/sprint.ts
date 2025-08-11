@@ -99,5 +99,22 @@ export const sprintService = {
     }
 
     return response;
+  },
+  
+  // Met à jour une tâche existante
+  updateTask: async (taskName: string, updatedTask: UpdateTaskData): Promise<Response> => {
+      const response = await fetch(`${API_URL}/tasks/update/${encodeURIComponent(taskName)}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updatedTask),
+    });
+
+    if (!response.ok) {
+      throw new Error('Erreur lors de la mise à jour de la tâche');
+    }
+
+    return response;
   }
 };

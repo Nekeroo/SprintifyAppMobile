@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { globalStyles, colors, spacing } from '@/styles/theme';
 import { FontAwesome } from '@expo/vector-icons';
 import { sprintService } from '@/services/sprint';
+import { isoToDisplayDate } from '@/services/dateUtils';
 import { Task, TasksByStatus } from '@/types/task';
 import EditTaskModal from '@/components/EditTaskModal';
 import CreateTaskModal from '@/components/CreateTaskModal';
@@ -70,7 +71,18 @@ export default function SprintDetailScreen() {
       setIsUpdatingTask(true);
       setUpdateTaskError('');
       
-      await sprintService.updateTask(sprintName as string, selectedTask.title, updatedTask);
+      const formattedDueDate = updatedTask.dueDate 
+      
+      const taskUpdatePayload = {
+        title: updatedTask.title,
+        description: updatedTask.description,
+        status: updatedTask.status,
+        dueDate: formattedDueDate,
+        usernameAssignee: updatedTask.usernameAssignee,
+        storyPoints: updatedTask.storyPoints
+      };
+      
+      await sprintService.updateTask(selectedTask.title, taskUpdatePayload);
       
       // Recharger les tâches pour afficher les modifications
       await loadTasks();
@@ -92,23 +104,19 @@ export default function SprintDetailScreen() {
     try {
       setIsCreatingTask(true);
       setCreateTaskError('');
-      
-      // Créer un objet compatible avec l'API createTask
+  
       const taskPayload = {
         name: newTask.title,
         description: newTask.description,
-        dueDate: newTask.dueDate,
+        dueDate: newTask.dueDate || '', 
         storyPoints: newTask.storyPoints,
         assignee: newTask.usernameAssignee
       };
       
       await sprintService.createTask(sprintName as string, taskPayload);
       
-      // Recharger les tâches pour afficher la nouvelle tâche
-      await loadTasks();
-      
-      // Fermer la modale
-      setCreateTaskModalVisible(false);
+      await loadTasks(); 
+      setCreateTaskModalVisible(false); 
     } catch (err) {
       setCreateTaskError('Erreur lors de la création de la tâche');
       console.error(err);
@@ -117,6 +125,7 @@ export default function SprintDetailScreen() {
       setIsCreatingTask(false);
     }
   };
+  
 
   const renderTaskCard = ({ item }: { item: Task }) => {
     return (
