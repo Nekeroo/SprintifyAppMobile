@@ -8,6 +8,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { authService } from '../services/auth';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export {
   ErrorBoundary,
@@ -37,7 +38,7 @@ const useProtectedRoute = () => {
       setIsAuthenticated(isAuthed);
 
       const inAuthGroup = segments[0] === 'auth';
-      
+
       if (!isAuthed && !inAuthGroup) {
         router.replace('/auth');
       } else if (isAuthed && inAuthGroup) {
@@ -77,12 +78,14 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: true }} />
-        <Stack.Screen name="auth/index" />
-      </Stack>
-    </ThemeProvider>
+    <GestureHandlerRootView>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: true }} />
+          <Stack.Screen name="auth/index" />
+        </Stack>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
