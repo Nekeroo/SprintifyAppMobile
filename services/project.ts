@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Project } from '@/types/project';
+import { ProjectDetails, ProjectOverview } from '@/types/project';
 import { authService } from './auth';
 import { User } from '@/types/user';
 
@@ -12,14 +12,14 @@ interface CreateProjectData {
 }
 
 export const projectService = {
-  async getAllProjects(): Promise<Project[]> {
+  async getAllProjects(): Promise<ProjectOverview[]> {
     try {
       const token = await authService.getToken();
       if (!token) {
         throw new Error('Non authentifié');
       }
 
-      const response = await axios.get<Project[]>(`${API_URL}/projects/`, {
+      const response = await axios.get<ProjectOverview[]>(`${API_URL}/projects/`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -31,14 +31,14 @@ export const projectService = {
     }
   },
 
-  async createProject(data: CreateProjectData): Promise<Project> {
+  async createProject(data: CreateProjectData): Promise<ProjectOverview> {
     try {
       const token = await authService.getToken();
       if (!token) {
         throw new Error('Non authentifié');
       }
 
-      const response = await axios.post<Project>(`${API_URL}/projects/`, data, {
+      const response = await axios.post<ProjectOverview>(`${API_URL}/projects/`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -50,14 +50,14 @@ export const projectService = {
     }
   },
 
-  async getProjectDetails(projectName: string): Promise<Project> {
+  async getProjectDetails(projectName: string): Promise<ProjectDetails> {
     try {
       const token = await authService.getToken();
       if (!token) {
         throw new Error('Non authentifié');
       }
 
-      const response = await axios.get<Project>(`${API_URL}/projects/${encodeURIComponent(projectName)}`, {
+      const response = await axios.get<ProjectDetails>(`${API_URL}/projects/${encodeURIComponent(projectName)}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

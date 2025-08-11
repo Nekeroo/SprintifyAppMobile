@@ -22,38 +22,29 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: useClientOnlyValue(false, true),
-      }}>
-      <Tabs.Screen
-        name="projects"
-        options={{
-          title: 'Projets',
-          tabBarIcon: ({ color }) => <TabBarIcon name="folder" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profil',
-          tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
-        }}
-      />
+  screenOptions={{
+    tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+    headerShown: useClientOnlyValue(false, true),
+  }}
+>
+  {/* Onglets visibles */}
+  <Tabs.Screen
+    name="projects"
+    options={{ title: 'Projets', tabBarIcon: ({ color }) => <TabBarIcon name="folder" color={color} /> }}
+  />
+  <Tabs.Screen
+    name="profile"
+    options={{ title: 'Profil', tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} /> }}
+  />
 
-      {/* Écrans masqués de la barre de navigation mais accessibles */}
-      <Tabs.Screen
-        name="project-detail"
-        options={{
-          href: null, // Cache cet écran de la barre de navigation
-        }}
-      />
-      <Tabs.Screen
-        name="create-project"
-        options={{
-          href: null, // Cache cet écran de la barre de navigation
-        }}
-      />
-    </Tabs>
+  {/* Fichiers à masquer dans (tabs) */}
+  <Tabs.Screen name="index" options={{ href: null }} />
+  <Tabs.Screen name="two" options={{ href: null }} />
+  <Tabs.Screen name="create-sprint" options={{ href: null }} />
+
+  {/* Tes écrans déjà masqués */}
+  <Tabs.Screen name="project-detail" options={{ href: null }} />
+  <Tabs.Screen name="create-project" options={{ href: null }} />
+</Tabs>
   );
 }

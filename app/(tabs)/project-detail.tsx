@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, ScrollView, Pressable } from 'react-native';
 import { Text } from '@/components/Themed';
-import { Project } from '@/types/project';
+import { ProjectDetails, ProjectOverview } from '@/types/project';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { globalStyles, colors, spacing } from '@/styles/theme';
 import { FontAwesome } from '@expo/vector-icons';
 import { sprintService } from '@/services/sprint';
 import { projectService } from '@/services/project';
+import { SprintOverview } from '@/types/sprint';
 
 export default function ProjectDetailScreen() {
   const { project, reload } = useLocalSearchParams();
-  const initialProjectData: Project = JSON.parse(project as string);
   const router = useRouter();
-  const [projectData, setProjectData] = useState(initialProjectData);
-  const [sprints, setSprints] = useState(initialProjectData.sprints);
+  const [projectData, setProjectData] = useState<ProjectDetails>();
+  const [sprints, setSprints] = useState<SprintOverview[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -23,11 +23,11 @@ export default function ProjectDetailScreen() {
       setError('');
       
       // Charger les données à jour du projet
-      const updatedProject = await projectService.getProjectDetails(initialProjectData.name);
+      const updatedProject = await projectService.getProjectDetails(project as string);
       setProjectData(updatedProject);
       
       // Charger les sprints à jour
-      const updatedSprints = await sprintService.getSprints(initialProjectData.name);
+      const updatedSprints = await sprintService.getSprints(updatedProject.name);
       setSprints(updatedSprints);
     } catch (err) {
       setError('Erreur lors du chargement des données');
@@ -57,9 +57,9 @@ export default function ProjectDetailScreen() {
 
       <ScrollView style={globalStyles.container}>
         <View style={[globalStyles.card, styles.header]}>
-          <Text style={globalStyles.title}>{projectData.name}</Text>
-          <Text style={globalStyles.textSecondary}>{projectData.description}</Text>
-          {projectData.owner && (
+          <Text style={globalStyles.title}>{projectData?.name}</Text>
+          <Text style={globalStyles.textSecondary}>{projectData?.description}</Text>
+          {projectData?.owner && (
             <Text style={globalStyles.textTertiary}>
               Créé par: {projectData.owner.username}
             </Text>
@@ -77,7 +77,7 @@ export default function ProjectDetailScreen() {
               onPress={() => router.push({
                 pathname: '/create-sprint',
                 params: { 
-                  projectName: projectData.name,
+                  projectName: projectData?.name,
                   project: JSON.stringify(projectData)
                 }
               })}
@@ -97,16 +97,26 @@ export default function ProjectDetailScreen() {
             </Text>
           ) : (
             sprints.map((sprint) => (
-              <View key={sprint.name} style={globalStyles.card}>
+              <Pressable
+                key={sprint.name}
+                style={({pressed}) => [
+                  globalStyles.card,
+                  pressed && globalStyles.buttonPressed
+                ]}
+                onPress={() => router.push({
+                  pathname: '/sprint-detail',
+                  params: { sprintName: sprint.name }
+                })}
+              >
                 <Text style={globalStyles.subtitle}>{sprint.name}</Text>
                 <Text style={globalStyles.textSecondary}>
                   Du {new Date(sprint.startDate).toLocaleDateString()} au{' '}
                   {new Date(sprint.endDate).toLocaleDateString()}
                 </Text>
-                <Text style={globalStyles.textTertiary}>
-                  Statut: {sprint.status}
+                <Text style={[globalStyles.textTertiary, styles.sprintDescription]}>
+                  {sprint.description || 'Aucune description'}
                 </Text>
-              </View>
+              </Pressable>
             ))
           )}
         </View>
@@ -152,8 +162,26 @@ const styles = StyleSheet.create({
   },
   createButtonText: {
     marginLeft: spacing.xs,
-    color: colors.text.onPrimary,
+    color: colors.text.primary,
     fontSize: 14,
     fontWeight: '500',
+  },
+  sprintCardFooter: {
+    marginTop: spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  viewTasksButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewTasksText: {
+    marginLeft: spacing.xs,
+    color: colors.text.primary,
+    fontSize: 14,
+  },
+  sprintDescription: {
+    marginTop: spacing.sm,
   },
 });
