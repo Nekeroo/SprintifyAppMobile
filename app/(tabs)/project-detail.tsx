@@ -97,13 +97,26 @@ export default function ProjectDetailScreen() {
             </Text>
           ) : (
             sprints.map((sprint) => (
-              <View key={sprint.name} style={globalStyles.card}>
+              <Pressable
+                key={sprint.name}
+                style={({pressed}) => [
+                  globalStyles.card,
+                  pressed && globalStyles.buttonPressed
+                ]}
+                onPress={() => router.push({
+                  pathname: '/sprint-detail',
+                  params: { sprintName: sprint.name }
+                })}
+              >
                 <Text style={globalStyles.subtitle}>{sprint.name}</Text>
                 <Text style={globalStyles.textSecondary}>
                   Du {new Date(sprint.startDate).toLocaleDateString()} au{' '}
                   {new Date(sprint.endDate).toLocaleDateString()}
                 </Text>
-              </View>
+                <Text style={[globalStyles.textTertiary, styles.sprintDescription]}>
+                  {sprint.description || 'Aucune description'}
+                </Text>
+              </Pressable>
             ))
           )}
         </View>
@@ -149,8 +162,26 @@ const styles = StyleSheet.create({
   },
   createButtonText: {
     marginLeft: spacing.xs,
-    color: colors.text.onPrimary,
+    color: colors.text.primary,
     fontSize: 14,
     fontWeight: '500',
+  },
+  sprintCardFooter: {
+    marginTop: spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  viewTasksButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewTasksText: {
+    marginLeft: spacing.xs,
+    color: colors.text.primary,
+    fontSize: 14,
+  },
+  sprintDescription: {
+    marginTop: spacing.sm,
   },
 });

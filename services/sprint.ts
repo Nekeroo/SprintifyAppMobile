@@ -1,4 +1,5 @@
 import { Sprint, SprintOverview } from "../types/sprint";
+import { Task, TasksByStatus } from "../types/task";
 
 interface CreateSprintData {
   name: string;
@@ -43,5 +44,26 @@ export const sprintService = {
     }
 
     return response;
+  },
+  
+  getTasks: async (sprintName: string): Promise<Task[]> => {
+    const response = await fetch(`${API_URL}/tasks/${encodeURIComponent(sprintName)}`);
+    
+    if (!response.ok) {
+      throw new Error('Erreur lors de la récupération des tâches');
+    }
+
+    return response.json();
+  },
+  
+  // Fonction utilitaire pour organiser les tâches par statut (colonnes)
+  organizeTasksByStatus: (tasks: Task[]): TasksByStatus => {
+    return tasks.reduce((acc: TasksByStatus, task: Task) => {
+      if (!acc[task.status]) {
+        acc[task.status] = [];
+      }
+      acc[task.status].push(task);
+      return acc;
+    }, {});
   }
 };
