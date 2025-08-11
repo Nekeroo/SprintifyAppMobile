@@ -4,16 +4,30 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { globalStyles, colors, spacing } from '@/styles/theme';
 import { FontAwesome } from '@expo/vector-icons';
 import { sprintService } from '@/services/sprint';
-import { Task, TasksByStatus } from './../../types/task';
+import { Task, TasksByStatus } from '@/types/task';
+import EditTaskModal from '@/components/EditTaskModal';
+import CreateTaskModal from '@/components/CreateTaskModal';
 
 export default function SprintDetailScreen() {
   const { sprintName } = useLocalSearchParams();
   const router = useRouter();
+  
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tasksByStatus, setTasksByStatus] = useState<TasksByStatus>({});
   const [statusColumns, setStatusColumns] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // États pour la modale de tâche
+  const [taskModalVisible, setTaskModalVisible] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isUpdatingTask, setIsUpdatingTask] = useState(false);
+  const [updateTaskError, setUpdateTaskError] = useState('');
+  
+  // États pour la modale de création de tâche
+  const [createTaskModalVisible, setCreateTaskModalVisible] = useState(false);
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [createTaskError, setCreateTaskError] = useState('');
 
   useEffect(() => {
     loadTasks();
@@ -43,147 +57,200 @@ export default function SprintDetailScreen() {
       setIsLoading(false);
     }
   };
+  
+  const openTaskModal = (task: Task) => {
+    setSelectedTask(task);
+    setTaskModalVisible(true);
+  };
+  
+  const handleUpdateTask = async (updatedTask: Task) => {
+    if (!selectedTask || !sprintName) return;
+    
+    try {
+      setIsUpdatingTask(true);
+      setUpdateTaskError('');
+      
+      await sprintService.updateTask(sprintName as string, selectedTask.title, updatedTask);
+      
+      // Recharger les tâches pour afficher les modifications
+      await loadTasks();
+      
+      // Fermer la modale
+      setTaskModalVisible(false);
+    } catch (err) {
+      setUpdateTaskError('Erreur lors de la mise à jour de la tâche');
+      console.error(err);
+      return Promise.reject(err);
+    } finally {
+      setIsUpdatingTask(false);
+    }
+  };
+
+  const handleCreateTask = async (newTask: Omit<Task, 'id'>) => {
+    if (!sprintName) return;
+    
+    try {
+      setIsCreatingTask(true);
+      setCreateTaskError('');
+      
+      // Créer un objet compatible avec l'API createTask
+      const taskPayload = {
+        name: newTask.title,
+        description: newTask.description,
+        dueDate: newTask.dueDate,
+        storyPoints: newTask.storyPoints,
+        assignee: newTask.usernameAssignee
+      };
+      
+      await sprintService.createTask(sprintName as string, taskPayload);
+      
+      // Recharger les tâches pour afficher la nouvelle tâche
+      await loadTasks();
+      
+      // Fermer la modale
+      setCreateTaskModalVisible(false);
+    } catch (err) {
+      setCreateTaskError('Erreur lors de la création de la tâche');
+      console.error(err);
+      return Promise.reject(err);
+    } finally {
+      setIsCreatingTask(false);
+    }
+  };
 
   const renderTaskCard = ({ item }: { item: Task }) => {
     return (
-      <View style={styles.taskCard}>
-        <Text style={styles.taskTitle}>{item.title}</Text>
-        <Text style={styles.taskDescription} numberOfLines={2}>
-          {item.description}
-        </Text>
+      <Pressable
+        style={({pressed}) => [
+          styles.taskCard,
+          pressed && globalStyles.buttonPressed
+        ]}
+        onPress={() => openTaskModal(item)}
+      >
+        <Text style={styles.taskTitle} numberOfLines={2}>{item.title}</Text>
+        
+        <Text style={styles.taskDescription} numberOfLines={2}>{item.description}</Text>
+        
         <View style={styles.taskFooter}>
-          <View style={styles.taskAssignee}>
-            <FontAwesome name="user" size={12} color={colors.text.secondary} />
-            <Text style={styles.taskAssigneeText}>{item.usernameAssignee || 'Non assigné'}</Text>
-          </View>
-          <View style={styles.taskPoints}>
-            <Text style={styles.taskPointsText}>{item.storyPoints} pt</Text>
-          </View>
+          {item.usernameAssignee ? (
+            <Text style={styles.taskAssignee}>{item.usernameAssignee}</Text>
+          ) : (
+            <Text style={styles.taskUnassigned}>Non assigné</Text>
+          )}
+          
+          {item.storyPoints > 0 && (
+            <View style={styles.storyPoints}>
+              <Text style={styles.storyPointsText}>{item.storyPoints}</Text>
+            </View>
+          )}
         </View>
-        <Text style={styles.taskDueDate}>
-          Échéance: {item.dueDate ? new Date(item.dueDate).toLocaleDateString() : 'Non définie'}
-        </Text>
-      </View>
+      </Pressable>
     );
   };
 
   const renderStatusColumn = (status: string) => {
+    const statusTasks = tasksByStatus[status] || [];
+    
     return (
-      <View key={status} style={styles.column}>
-        <View style={styles.columnHeader}>
-          <Text style={styles.columnTitle}>{status}</Text>
-          <Text style={styles.taskCount}>{tasksByStatus[status]?.length || 0}</Text>
+      <View style={styles.statusColumn} key={status}>
+        <View style={styles.statusHeader}>
+          <Text style={styles.statusTitle}>{status}</Text>
+          <Text style={styles.statusCount}>{statusTasks.length}</Text>
         </View>
+        
         <FlatList
-          data={tasksByStatus[status] || []}
+          data={statusTasks}
           renderItem={renderTaskCard}
-          keyExtractor={item => item.title}
+          keyExtractor={(item) => item.title}
+          style={styles.taskList}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.columnContent}
         />
       </View>
     );
   };
 
   return (
-    <View style={globalStyles.container}>
-      <Pressable 
-        style={({pressed}) => [
-          styles.backButton,
-          pressed && globalStyles.buttonPressed
-        ]}
-        onPress={() => router.back()}
-      >
-        <FontAwesome name="arrow-left" size={20} color={colors.text.primary} />
-        <Text style={styles.backButtonText}>Retour</Text>
-      </Pressable>
-
-      <Text style={globalStyles.title}>Sprint: {sprintName}</Text>
-
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={globalStyles.title}>{sprintName}</Text>
+        <Pressable
+          style={({pressed}) => [
+            styles.addTaskButton,
+            pressed && globalStyles.buttonPressed
+          ]}
+          onPress={() => setCreateTaskModalVisible(true)}
+        >
+          <FontAwesome name="plus" size={16} color={colors.text.onPrimary} />
+          <Text style={styles.addTaskButtonText}>Nouvelle tâche</Text>
+        </Pressable>
+      </View>
+      
       {isLoading ? (
-        <View style={styles.loadingContainer}>
+        <View style={globalStyles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Chargement des tâches...</Text>
         </View>
       ) : error ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+        <View style={globalStyles.errorContainer}>
+          <Text style={globalStyles.errorText}>{error}</Text>
           <Pressable
-            style={styles.retryButton}
+            style={({pressed}) => [
+              globalStyles.button,
+              pressed && globalStyles.buttonPressed
+            ]}
             onPress={loadTasks}
           >
-            <Text style={styles.retryButtonText}>Réessayer</Text>
+            <Text style={globalStyles.buttonText}>Réessayer</Text>
           </Pressable>
-        </View>
-      ) : tasks.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Aucune tâche pour ce sprint</Text>
         </View>
       ) : (
         <ScrollView
           horizontal
-          contentContainerStyle={styles.columnsContainer}
+          style={styles.columnsContainer}
+          contentContainerStyle={styles.columns}
           showsHorizontalScrollIndicator={false}
         >
-          {statusColumns.map(status => renderStatusColumn(status))}
+          {statusColumns.map(renderStatusColumn)}
         </ScrollView>
       )}
+      
+      {/* Utilisation du composant EditTaskModal */}
+      {selectedTask && (
+        <EditTaskModal
+          visible={taskModalVisible}
+          task={selectedTask}
+          onClose={() => setTaskModalVisible(false)}
+          onUpdate={handleUpdateTask}
+          isUpdating={isUpdatingTask}
+          updateError={updateTaskError}
+        />
+      )}
+      
+      {/* Utilisation du composant CreateTaskModal */}
+      <CreateTaskModal
+        visible={createTaskModalVisible}
+        onClose={() => setCreateTaskModalVisible(false)}
+        onCreate={handleCreateTask}
+        isCreating={isCreatingTask}
+        createError={createTaskError}
+        sprintName={sprintName as string}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  backButtonText: {
-    marginLeft: spacing.xs,
-    color: colors.text.primary,
-    fontSize: 16,
-  },
-  loadingContainer: {
+  container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: spacing.sm,
-    color: colors.text.secondary,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    color: colors.error,
-    marginBottom: spacing.md,
-  },
-  retryButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: colors.text.onPrimary,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: colors.text.secondary,
-    fontStyle: 'italic',
+    padding: spacing.md,
+    backgroundColor: colors.background.primary,
   },
   columnsContainer: {
-    paddingHorizontal: spacing.md,
+    flex: 1,
   },
-  column: {
+  columns: {
+    paddingRight: spacing.lg,
+  },
+  statusColumn: {
     width: 280,
     marginRight: spacing.md,
     backgroundColor: colors.background.secondary,
@@ -191,42 +258,44 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     maxHeight: '100%',
   },
-  columnHeader: {
+  statusHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
     marginBottom: spacing.sm,
   },
-  columnTitle: {
+  statusTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: colors.text.primary,
   },
-  taskCount: {
-    fontSize: 14,
-    color: colors.text.secondary,
+  statusCount: {
     backgroundColor: colors.background.tertiary,
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: 12,
+    fontSize: 12,
+    color: colors.text.primary,
   },
-  columnContent: {
-    paddingBottom: spacing.md,
+  taskList: {
+    flex: 1,
   },
   taskCard: {
     backgroundColor: colors.background.primary,
-    padding: spacing.sm,
     borderRadius: 8,
+    padding: spacing.sm,
     marginBottom: spacing.sm,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
   },
   taskTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.primary,
+    fontWeight: '500',
     marginBottom: spacing.xs,
+    color: colors.text.primary,
   },
   taskDescription: {
     fontSize: 14,
@@ -237,30 +306,46 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
   },
   taskAssignee: {
-    flexDirection: 'row',
+    fontSize: 12,
+    color: colors.text.secondary,
+  },
+  taskUnassigned: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    fontStyle: 'italic',
+  },
+  storyPoints: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.background.secondary,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  taskAssigneeText: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    marginLeft: spacing.xs,
+  storyPointsText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: colors.text.primary,
   },
-  taskPoints: {
-    backgroundColor: colors.background.tertiary,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
   },
-  taskPointsText: {
-    fontSize: 12,
-    color: colors.text.secondary,
+  addTaskButton: {
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 4,
+  },
+  addTaskButtonText: {
+    color: colors.text.onPrimary,
     fontWeight: '500',
-  },
-  taskDueDate: {
-    fontSize: 12,
-    color: colors.text.tertiary,
+    marginLeft: spacing.xs,
   },
 });
