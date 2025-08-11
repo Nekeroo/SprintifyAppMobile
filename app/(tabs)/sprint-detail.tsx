@@ -1,31 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, FlatList } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, View, Text, ScrollView, Pressable, ActivityIndicator, FlatList, Platform } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { globalStyles, colors, spacing } from '@/styles/theme';
 import { FontAwesome } from '@expo/vector-icons';
 import { sprintService } from '@/services/sprint';
-import { isoToDisplayDate } from '@/services/dateUtils';
 import { Task, TasksByStatus } from '@/types/task';
 import EditTaskModal from '@/components/EditTaskModal';
 import CreateTaskModal from '@/components/CreateTaskModal';
 
+import { DraxProvider, DraxView } from 'react-native-drax';
+
 export default function SprintDetailScreen() {
   const { sprintName } = useLocalSearchParams();
-  const router = useRouter();
-  
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tasksByStatus, setTasksByStatus] = useState<TasksByStatus>({});
   const [statusColumns, setStatusColumns] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  
-  // États pour la modale de tâche
+
   const [taskModalVisible, setTaskModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isUpdatingTask, setIsUpdatingTask] = useState(false);
   const [updateTaskError, setUpdateTaskError] = useState('');
-  
-  // États pour la modale de création de tâche
+
   const [createTaskModalVisible, setCreateTaskModalVisible] = useState(false);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
   const [createTaskError, setCreateTaskError] = useState('');
@@ -36,21 +34,16 @@ export default function SprintDetailScreen() {
 
   const loadTasks = async () => {
     if (!sprintName) return;
-    
     try {
       setIsLoading(true);
       setError('');
-      
+
       const sprintTasks = await sprintService.getTasks(sprintName as string);
       setTasks(sprintTasks);
-      
-      // Organiser les tâches par statut
+
       const organizedTasks = sprintService.organizeTasksByStatus(sprintTasks);
       setTasksByStatus(organizedTasks);
-      
-      // Récupérer les colonnes de statut
       setStatusColumns(Object.keys(organizedTasks));
-      
     } catch (err) {
       setError('Erreur lors du chargement des tâches');
       console.error(err);
@@ -58,41 +51,33 @@ export default function SprintDetailScreen() {
       setIsLoading(false);
     }
   };
-  
+
   const openTaskModal = (task: Task) => {
     setSelectedTask(task);
     setTaskModalVisible(true);
   };
-  
+
   const handleUpdateTask = async (updatedTask: Task) => {
     if (!selectedTask || !sprintName) return;
-    
     try {
       setIsUpdatingTask(true);
       setUpdateTaskError('');
-      
-      const formattedDueDate = updatedTask.dueDate 
-      
+
       const taskUpdatePayload = {
         title: updatedTask.title,
         description: updatedTask.description,
         status: updatedTask.status,
-        dueDate: formattedDueDate,
+        dueDate: updatedTask.dueDate,
         usernameAssignee: updatedTask.usernameAssignee,
-        storyPoints: updatedTask.storyPoints
+        storyPoints: updatedTask.storyPoints,
       };
-      
+
       await sprintService.updateTask(selectedTask.title, taskUpdatePayload);
-      
-      // Recharger les tâches pour afficher les modifications
       await loadTasks();
-      
-      // Fermer la modale
       setTaskModalVisible(false);
     } catch (err) {
       setUpdateTaskError('Erreur lors de la mise à jour de la tâche');
       console.error(err);
-      return Promise.reject(err);
     } finally {
       setIsUpdatingTask(false);
     }
@@ -100,53 +85,81 @@ export default function SprintDetailScreen() {
 
   const handleCreateTask = async (newTask: Omit<Task, 'id'>) => {
     if (!sprintName) return;
-    
     try {
       setIsCreatingTask(true);
       setCreateTaskError('');
-  
+
       const taskPayload = {
         name: newTask.title,
         description: newTask.description,
-        dueDate: newTask.dueDate || '', 
+        dueDate: newTask.dueDate || '',
         storyPoints: newTask.storyPoints,
-        assignee: newTask.usernameAssignee
+        assignee: newTask.usernameAssignee,
       };
-      
+
       await sprintService.createTask(sprintName as string, taskPayload);
-      
-      await loadTasks(); 
-      setCreateTaskModalVisible(false); 
+      await loadTasks();
+      setCreateTaskModalVisible(false);
     } catch (err) {
       setCreateTaskError('Erreur lors de la création de la tâche');
       console.error(err);
-      return Promise.reject(err);
     } finally {
       setIsCreatingTask(false);
     }
   };
-  
+
+  const onDropTaskToStatus = useCallback(
+    async (taskTitle: string, targetStatus: string) => {
+      try {
+        setTasksByStatus((prev) => {
+          const cloned: TasksByStatus = {};
+          for (const k of Object.keys(prev)) cloned[k] = [...prev[k]];
+
+          let movedTask: Task | undefined;
+          for (const status of Object.keys(cloned)) {
+            const idx = cloned[status].findIndex((t) => t.title === taskTitle);
+            if (idx !== -1) {
+              movedTask = { ...cloned[status][idx], status: targetStatus };
+              cloned[status].splice(idx, 1);
+              break;
+            }
+          }
+          if (!movedTask) return prev;
+
+          if (!cloned[targetStatus]) cloned[targetStatus] = [];
+          cloned[targetStatus] = [movedTask, ...cloned[targetStatus]];
+
+          return cloned;
+        });
+
+        await sprintService.updateTask(taskTitle, { status: targetStatus });
+        await loadTasks();
+      } catch (e) {
+        console.error(e);
+        await loadTasks();
+      }
+    },
+    [loadTasks]
+  );
 
   const renderTaskCard = ({ item }: { item: Task }) => {
-    return (
+    const content = (
       <Pressable
-        style={({pressed}) => [
-          styles.taskCard,
-          pressed && globalStyles.buttonPressed
-        ]}
+        style={({ pressed }) => [styles.taskCard, pressed && globalStyles.buttonPressed]}
         onPress={() => openTaskModal(item)}
       >
-        <Text style={styles.taskTitle} numberOfLines={2}>{item.title}</Text>
-        
-        <Text style={styles.taskDescription} numberOfLines={2}>{item.description}</Text>
-        
+        <Text style={styles.taskTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
+        <Text style={styles.taskDescription} numberOfLines={2}>
+          {item.description}
+        </Text>
         <View style={styles.taskFooter}>
           {item.usernameAssignee ? (
             <Text style={styles.taskAssignee}>{item.usernameAssignee}</Text>
           ) : (
             <Text style={styles.taskUnassigned}>Non assigné</Text>
           )}
-          
           {item.storyPoints > 0 && (
             <View style={styles.storyPoints}>
               <Text style={styles.storyPointsText}>{item.storyPoints}</Text>
@@ -155,18 +168,51 @@ export default function SprintDetailScreen() {
         </View>
       </Pressable>
     );
+
+    return Platform.OS !== 'web' ? (
+      <DraxView
+        style={styles.draggableWrapper}
+        draggingStyle={styles.dragging}
+        dragReleasedStyle={styles.dragReleased}
+        hoverDraggingStyle={styles.hoverDragging}
+        dragPayload={item.title}
+        longPressDelay={150}
+      >
+        {content}
+      </DraxView>
+    ) : (
+      content
+    );
   };
 
   const renderStatusColumn = (status: string) => {
     const statusTasks = tasksByStatus[status] || [];
-    
-    return (
+
+    return Platform.OS !== 'web' ? (
+      <DraxView
+        key={status}
+        receptive
+        style={styles.statusColumn}
+        onReceiveDragDrop={({ dragged }) => onDropTaskToStatus(String(dragged?.payload), status)}
+      >
+        <View style={styles.statusHeader}>
+          <Text style={styles.statusTitle}>{status}</Text>
+          <Text style={styles.statusCount}>{statusTasks.length}</Text>
+        </View>
+        <FlatList
+          data={statusTasks}
+          renderItem={renderTaskCard}
+          keyExtractor={(item) => item.title}
+          style={styles.taskList}
+          showsVerticalScrollIndicator={false}
+        />
+      </DraxView>
+    ) : (
       <View style={styles.statusColumn} key={status}>
         <View style={styles.statusHeader}>
           <Text style={styles.statusTitle}>{status}</Text>
           <Text style={styles.statusCount}>{statusTasks.length}</Text>
         </View>
-        
         <FlatList
           data={statusTasks}
           renderItem={renderTaskCard}
@@ -178,73 +224,94 @@ export default function SprintDetailScreen() {
     );
   };
 
-  return (
+  const ColumnsView = (
+    <ScrollView
+      horizontal
+      style={styles.columnsContainer}
+      contentContainerStyle={styles.columns}
+      showsHorizontalScrollIndicator={false}
+    >
+      {statusColumns.map(renderStatusColumn)}
+    </ScrollView>
+  );
+
+  return Platform.OS !== 'web' ? (
+    <DraxProvider>
+      <View style={styles.container}>
+        <HeaderSection />
+        {isLoading ? <LoadingSection /> : error ? <ErrorSection /> : ColumnsView}
+        <ModalsSection />
+      </View>
+    </DraxProvider>
+  ) : (
     <View style={styles.container}>
+      <HeaderSection />
+      {isLoading ? <LoadingSection /> : error ? <ErrorSection /> : ColumnsView}
+      <ModalsSection />
+    </View>
+  );
+
+  function HeaderSection() {
+    return (
       <View style={styles.header}>
         <Text style={globalStyles.title}>{sprintName}</Text>
         <Pressable
-          style={({pressed}) => [
-            styles.addTaskButton,
-            pressed && globalStyles.buttonPressed
-          ]}
+          style={({ pressed }) => [styles.addTaskButton, pressed && globalStyles.buttonPressed]}
           onPress={() => setCreateTaskModalVisible(true)}
         >
           <FontAwesome name="plus" size={16} color={colors.text.onPrimary} />
           <Text style={styles.addTaskButtonText}>Nouvelle tâche</Text>
         </Pressable>
       </View>
-      
-      {isLoading ? (
-        <View style={globalStyles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : error ? (
-        <View style={globalStyles.errorContainer}>
-          <Text style={globalStyles.errorText}>{error}</Text>
-          <Pressable
-            style={({pressed}) => [
-              globalStyles.button,
-              pressed && globalStyles.buttonPressed
-            ]}
-            onPress={loadTasks}
-          >
-            <Text style={globalStyles.buttonText}>Réessayer</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <ScrollView
-          horizontal
-          style={styles.columnsContainer}
-          contentContainerStyle={styles.columns}
-          showsHorizontalScrollIndicator={false}
+    );
+  }
+
+  function LoadingSection() {
+    return (
+      <View style={globalStyles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  function ErrorSection() {
+    return (
+      <View style={globalStyles.errorContainer}>
+        <Text style={globalStyles.errorText}>{error}</Text>
+        <Pressable
+          style={({ pressed }) => [globalStyles.button, pressed && globalStyles.buttonPressed]}
+          onPress={loadTasks}
         >
-          {statusColumns.map(renderStatusColumn)}
-        </ScrollView>
-      )}
-      
-      {/* Utilisation du composant EditTaskModal */}
-      {selectedTask && (
-        <EditTaskModal
-          visible={taskModalVisible}
-          task={selectedTask}
-          onClose={() => setTaskModalVisible(false)}
-          onUpdate={handleUpdateTask}
-          isUpdating={isUpdatingTask}
-          updateError={updateTaskError}
+          <Text style={globalStyles.buttonText}>Réessayer</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  function ModalsSection() {
+    return (
+      <>
+        {selectedTask && (
+          <EditTaskModal
+            visible={taskModalVisible}
+            task={selectedTask}
+            onClose={() => setTaskModalVisible(false)}
+            onUpdate={handleUpdateTask}
+            isUpdating={isUpdatingTask}
+            updateError={updateTaskError}
+          />
+        )}
+        <CreateTaskModal
+          visible={createTaskModalVisible}
+          onClose={() => setCreateTaskModalVisible(false)}
+          onCreate={handleCreateTask}
+          isCreating={isCreatingTask}
+          createError={createTaskError}
+          sprintName={sprintName as string}
         />
-      )}
-      
-      {/* Utilisation du composant CreateTaskModal */}
-      <CreateTaskModal
-        visible={createTaskModalVisible}
-        onClose={() => setCreateTaskModalVisible(false)}
-        onCreate={handleCreateTask}
-        isCreating={isCreatingTask}
-        createError={createTaskError}
-        sprintName={sprintName as string}
-      />
-    </View>
-  );
+      </>
+    );
+  }
 }
 
 const styles = StyleSheet.create({
@@ -288,6 +355,20 @@ const styles = StyleSheet.create({
   },
   taskList: {
     flex: 1,
+  },
+  // --- Task card (draggable) ---
+  draggableWrapper: {
+    borderRadius: 8,
+  },
+  dragging: {
+    opacity: 0.2,
+  },
+  dragReleased: {
+    opacity: 1,
+  },
+  hoverDragging: {
+    borderWidth: 1,
+    borderColor: colors.primary,
   },
   taskCard: {
     backgroundColor: colors.background.primary,

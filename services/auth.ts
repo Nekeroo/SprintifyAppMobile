@@ -1,6 +1,6 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LoginCredentials, RegisterCredentials, AuthResponse } from '../types/auth';
+import { LoginCredentials, RegisterCredentials, AuthResponse, User } from '../types/auth';
 
 
 const API_URL = 'http://sprintify.mathieugr.fr:3000/api';
@@ -86,9 +86,13 @@ export const authService = {
     }
   },
 
-  async getMe(): Promise<any> {
+  async getMe(): Promise<User> {
     try {
-      const response = await axios.get(`${API_URL}/auth/me`);
+      const response = await axios.get(`${API_URL}/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${await this.getToken()}`,
+        },
+      });
       return response.data;
     } catch (error) {
       console.error('Get me error:', error);
