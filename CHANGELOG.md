@@ -1,4 +1,22 @@
 
+<a name="v1.4.0"></a>
+## [v1.4.0](https://github.com/Nekeroo/Sprintify/compare/v1.3.0...v1.4.0)
+
+> 2025-08-11
+
+### Chore
+
+* update changelog
+
+### Feat
+
+* Modification layout avec gesturehandlerrootview et la gestion du choix user dans createTask
+
+### Fix
+
+* creation, update task + affichage profil (basique) TODO : Ajouter la modification de Profil
+
+
 <a name="v1.3.0"></a>
 ## [v1.3.0](https://github.com/Nekeroo/Sprintify/compare/v1.2.0...v1.3.0)
 
