@@ -4,13 +4,15 @@ import { Text } from '@/components/Themed';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { globalStyles, colors, spacing } from '@/styles/theme';
 import { FontAwesome } from '@expo/vector-icons';
-import { sprintService } from '@/services/sprint';
-import { formatDate, isValidDate, displayDateToIso } from '@/services/dateUtils';
+import { displayDateToApi, formatDate, isValidDate } from '@/services/dateUtils';
+import { useAppDispatch } from '@/store';
+import { createSprint } from '@/store/sprintSlice';
 
 export default function CreateSprintScreen() {
   const { projectName, project } = useLocalSearchParams();
   const router = useRouter();
-  
+  const dispatch = useAppDispatch();
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -28,8 +30,8 @@ export default function CreateSprintScreen() {
       return;
     }
 
-    const startDateStr = displayDateToIso(startDate);
-    const endDateStr = displayDateToIso(endDate);
+    const startDateStr = displayDateToApi(startDate);
+    const endDateStr = displayDateToApi(endDate);
 
     if (new Date(endDateStr) < new Date(startDateStr)) {
       setError('La date de fin doit être après la date de début');
@@ -37,23 +39,25 @@ export default function CreateSprintScreen() {
     }
 
     try {
-      await sprintService.createSprint(projectName as string, {
-        name,
-        description,
-        startDate: startDateStr,
-        endDate: endDateStr,
-      });
+      await dispatch(createSprint({
+        projectName: projectName as string,
+        data: {
+          name,
+          description,
+          startDate: startDateStr,
+          endDate: endDateStr,
+        }
+      })).unwrap();
 
-      // Rediriger vers la page de détails du projet
       router.replace({
         pathname: '/project-detail',
         params: { 
-          project: project, // Réutiliser les données du projet
-          reload: 'true' // Forcer un rechargement des sprints
+          project,
+          reload: 'true'
         }
       });
-    } catch (err) {
-      setError(err.message);
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors de la création du sprint');
     }
   };
 

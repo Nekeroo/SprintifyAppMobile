@@ -376,10 +376,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     marginBottom: spacing.sm,
     elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
+    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.1)'
   },
   taskTitle: {
     fontSize: 16,
