@@ -13,30 +13,18 @@ export default function ProjectDetailScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
 
-  const projectData = useAppSelector(
-    (state) => state.project.detailsByName[project as string]
-  );
-  const projectStatus = useAppSelector(
-    (state) => state.project.detailsStatusByName[project as string]
-  );
-  const projectError = useAppSelector(
-    (state) => state.project.detailsErrorByName[project as string]
-  );
+  const { selectedProject: projectData, status: projectStatus, error: projectError } =
+    useAppSelector((state) => state.project);
 
-  const sprintData = useAppSelector(
-    (state) => state.sprint.byProject[project as string]?.items || []
-  );
-  const sprintStatus = useAppSelector(
-    (state) => state.sprint.byProject[project as string]?.status
-  );
-  const sprintError = useAppSelector(
-    (state) => state.sprint.byProject[project as string]?.error
-  );
+  const sprintState = useAppSelector((state) => state.sprint.byProject[project as string]);
+  const sprintData = sprintState?.items || [];
+  const sprintStatus = sprintState?.status;
+  const sprintError = sprintState?.error;
 
   useEffect(() => {
     if (project) {
-      dispatch(getProjectDetails({ name: project as string }));
-      dispatch(getSprints({ projectName: project as string }));
+      dispatch(getProjectDetails(project as string));
+      dispatch(getSprints(project as string));
     }
   }, [dispatch, project, reload]);
 

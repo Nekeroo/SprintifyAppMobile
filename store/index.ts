@@ -6,6 +6,7 @@ import { Platform } from 'react-native';
 import authReducer from './authSlice';
 import projectReducer from './projectSlice';
 import sprintReducer from './sprintSlice';
+import taskReducer from './taskSlice';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createWebStorage from 'redux-persist/lib/storage/createWebStorage';
@@ -41,6 +42,7 @@ const rootReducer = combineReducers({
   auth: authReducer,
   project: projectReducer,
   sprint: sprintReducer,
+  task: taskReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

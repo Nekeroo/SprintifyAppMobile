@@ -1,98 +1,84 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { projectService } from '@/services/project';
 import type { ProjectOverview, ProjectDetails } from '@/types/project';
 
-type Status = 'idle' | 'loading' | 'succeeded' | 'failed';
-
-interface ProjectState {
-  list: ProjectOverview[];
-  listStatus: Status;
-  listError: string | null;
-
-  detailsByName: Record<string, ProjectDetails | undefined>;
-  detailsStatusByName: Record<string, Status>;
-  detailsErrorByName: Record<string, string | null>;
-}
-
-const initialState: ProjectState = {
-  list: [],
-  listStatus: 'idle',
-  listError: null,
-  detailsByName: {},
-  detailsStatusByName: {},
-  detailsErrorByName: {},
+type ProjectState = {
+  items: ProjectOverview[];
+  selectedProject: ProjectDetails | null;
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
 };
 
-// Actions async
-export const getAllProjects = createAsyncThunk('project/getAll', async (_, { rejectWithValue }) => {
-  try {
-    return await projectService.getAllProjects();
-  } catch (err: any) {
-    return rejectWithValue(err.message);
-  }
-});
+const initialState: ProjectState = {
+  items: [],
+  selectedProject: null,
+  status: 'idle',
+  error: null,
+};
 
-export const getProjectDetails = createAsyncThunk(
-  'project/getDetails',
-  async ({ name }: { name: string }, { rejectWithValue }) => {
-    try {
-      return { name, details: await projectService.getProjectDetails(name) };
-    } catch (err: any) {
-      return rejectWithValue({ name, error: err.message });
-    }
+export const getProjects = createAsyncThunk(
+  'project/getProjects',
+  async () => {
+    return await projectService.getAllProjects();
   }
 );
 
 export const createProject = createAsyncThunk(
-  'project/create',
-  async (data: Parameters<typeof projectService.createProject>[0], { rejectWithValue }) => {
-    try {
-      return await projectService.createProject(data);
-    } catch (err: any) {
-      return rejectWithValue(err.message);
-    }
+  'project/createProject',
+  async (data: any, { dispatch }) => {
+    await projectService.createProject(data);
+    const updatedProjects = await dispatch(getProjects()).unwrap();
+    return updatedProjects;
+  }
+);
+
+export const getProjectDetails = createAsyncThunk(
+  'project/getProjectDetails',
+  async (projectName: string) => {
+    return await projectService.getProjectDetails(projectName);
   }
 );
 
 const projectSlice = createSlice({
   name: 'project',
   initialState,
-  reducers: {
-    resetProjects: () => initialState,
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(getAllProjects.pending, (state) => {
-        state.listStatus = 'loading';
-        state.listError = null;
+      // Liste de projets
+      .addCase(getProjects.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
       })
-      .addCase(getAllProjects.fulfilled, (state, action: PayloadAction<ProjectOverview[]>) => {
-        state.list = action.payload;
-        state.listStatus = 'succeeded';
+      .addCase(getProjects.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.items = action.payload;
       })
-      .addCase(getAllProjects.rejected, (state, action) => {
-        state.listStatus = 'failed';
-        state.listError = action.payload as string;
+      .addCase(getProjects.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message || 'Erreur lors du chargement des projets';
       })
-      .addCase(getProjectDetails.pending, (state, action) => {
-        const name = (action.meta.arg as { name: string }).name;
-        state.detailsStatusByName[name] = 'loading';
-        state.detailsErrorByName[name] = null;
+
+      // Création de projet
+      .addCase(createProject.fulfilled, (state, action) => {
+        state.items = action.payload;
+        state.status = 'succeeded';
+      })
+
+      // Détails d’un projet
+      .addCase(getProjectDetails.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
       })
       .addCase(getProjectDetails.fulfilled, (state, action) => {
-        state.detailsByName[action.payload.name] = action.payload.details;
-        state.detailsStatusByName[action.payload.name] = 'succeeded';
+        state.status = 'succeeded';
+        state.selectedProject = action.payload;
       })
       .addCase(getProjectDetails.rejected, (state, action) => {
-        const name = (action.meta.arg as { name: string }).name;
-        state.detailsStatusByName[name] = 'failed';
-        state.detailsErrorByName[name] = (action.payload as { error: string })?.error ?? 'Erreur';
-      })
-      .addCase(createProject.fulfilled, (state, action: PayloadAction<ProjectOverview>) => {
-        state.list.unshift(action.payload);
+        state.status = 'failed';
+        state.error = action.error.message || 'Erreur lors de la récupération des détails du projet';
       });
   },
 });
 
-export const { resetProjects } = projectSlice.actions;
 export default projectSlice.reducer;

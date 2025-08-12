@@ -1,23 +1,26 @@
-import React, { useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { StyleSheet, FlatList, View, Pressable } from 'react-native';
 import { Text } from '@/components/Themed';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { globalStyles, colors, spacing } from '@/styles/theme';
 
 import { useAppDispatch, useAppSelector } from '@/store';
-import { getAllProjects } from '@/store/projectSlice';
+import { getProjects } from '@/store/projectSlice';
 
 export default function ProjectsScreen() {
   const dispatch = useAppDispatch();
   const router = useRouter();
 
-  const { list: projects, listStatus: status, listError: error } = useAppSelector(
+  const { items: projects, status, error } = useAppSelector(
     (state) => state.project
   );
 
-  useEffect(() => {
-    dispatch(getAllProjects());
-  }, [dispatch]);
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(getProjects());
+    }, [dispatch])
+  );
 
   const handleProjectPress = (projectName: string) => {
     router.push({
