@@ -9,7 +9,7 @@ import { useAppDispatch } from '@/store';
 import { createSprint } from '@/store/sprintSlice';
 
 export default function CreateSprintScreen() {
-  const { projectName, project } = useLocalSearchParams();
+  const { project } = useLocalSearchParams();
   const router = useRouter();
   const dispatch = useAppDispatch();
 
@@ -40,7 +40,7 @@ export default function CreateSprintScreen() {
 
     try {
       await dispatch(createSprint({
-        projectName: projectName as string,
+        projectName: project as string,
         data: {
           name,
           description,

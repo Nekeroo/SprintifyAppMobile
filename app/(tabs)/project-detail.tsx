@@ -13,16 +13,21 @@ export default function ProjectDetailScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
 
+  console.log('Project Name:', project);
+
   const { selectedProject: projectData, status: projectStatus, error: projectError } =
     useAppSelector((state) => state.project);
 
   const sprintState = useAppSelector((state) => state.sprint.byProject[project as string]);
+  console.log('Sprint State:', sprintState);
   const sprintData = sprintState?.items || [];
+  console.log('Sprint Data:', sprintData);
   const sprintStatus = sprintState?.status;
   const sprintError = sprintState?.error;
 
   useEffect(() => {
     if (project) {
+      console.log('Dispatching actions for project:', project);
       dispatch(getProjectDetails(project as string));
       dispatch(getSprints(project as string));
     }
@@ -66,8 +71,7 @@ export default function ProjectDetailScreen() {
                 router.push({
                   pathname: '/create-sprint',
                   params: {
-                    projectName: projectData?.name,
-                    project: JSON.stringify(projectData),
+                    project: project,
                   },
                 })
               }
@@ -108,7 +112,10 @@ export default function ProjectDetailScreen() {
                 onPress={() =>
                   router.push({
                     pathname: '/sprint-detail',
-                    params: { sprintName: sprint.name },
+                    params: { 
+                      sprintName: sprint.name,
+                      project: project 
+                    },
                   })
                 }
               >
