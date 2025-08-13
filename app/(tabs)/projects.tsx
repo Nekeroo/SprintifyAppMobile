@@ -1,45 +1,35 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback } from 'react';
 import { StyleSheet, FlatList, View, Pressable } from 'react-native';
 import { Text } from '@/components/Themed';
-import { ProjectOverview } from '@/types/project';
-import { projectService } from '@/services/project';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { globalStyles, colors, spacing } from '@/styles/theme';
 
-export default function ProjectsScreen() {
-  const [projects, setProjects] = useState<ProjectOverview[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+import { useAppDispatch, useAppSelector } from '@/store';
+import { getProjects } from '@/store/projectSlice';
 
+export default function ProjectsScreen() {
+  const dispatch = useAppDispatch();
   const router = useRouter();
 
-  useEffect(() => {
-    loadProjects();
-  }, []);
+  const { items: projects, status, error } = useAppSelector(
+    (state) => state.project
+  );
 
-  const loadProjects = async () => {
-    try {
-      setLoading(true);
-      const data = await projectService.getAllProjects();
-      setProjects(data);
-    } catch (err) {
-      setError('Erreur lors du chargement des projets');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(getProjects());
+    }, [dispatch])
+  );
 
-  const handleProjectPress = (project: ProjectOverview) => {
+  const handleProjectPress = (projectName: string) => {
     router.push({
       pathname: '/(tabs)/project-detail',
-      params: {
-        project: project.name
-      }
+      params: { project: projectName },
     });
   };
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <View style={globalStyles.container}>
         <Text>Chargement...</Text>
@@ -47,7 +37,17 @@ export default function ProjectsScreen() {
     );
   }
 
-  if (!loading && projects.length === 0) {
+  if (status === 'failed') {
+    return (
+      <View style={globalStyles.container}>
+        <Text style={globalStyles.errorText}>
+          {error || 'Erreur lors du chargement des projets'}
+        </Text>
+      </View>
+    );
+  }
+
+  if (status === 'succeeded' && projects.length === 0) {
     return (
       <View style={globalStyles.container}>
         <Text>Aucun projet trouvé</Text>
@@ -55,21 +55,11 @@ export default function ProjectsScreen() {
     );
   }
 
-  if (error) {
-    return (
-      <View style={globalStyles.container}>
-        <Text style={globalStyles.errorText}>{error}</Text>
-      </View>
-    );
-  }
-
-  const renderProject = ({ item }: { item: ProjectOverview }) => (
-    <Pressable onPress={() => handleProjectPress(item)}>
+  const renderProject = ({ item }: { item: typeof projects[number] }) => (
+    <Pressable onPress={() => handleProjectPress(item.name)}>
       <View style={[globalStyles.card, styles.projectCard]}>
         <Text style={globalStyles.subtitle}>{item.name}</Text>
-        <Text style={globalStyles.textTertiary}>
-          Créé par: {item.usernameOwner}
-        </Text>
+        <Text style={globalStyles.textTertiary}>Créé par: {item.usernameOwner}</Text>
         <Text style={globalStyles.textTertiary}>
           Nombre de sprints: {item.nbSprint}
         </Text>
@@ -85,10 +75,10 @@ export default function ProjectsScreen() {
         keyExtractor={(item) => item.name}
         contentContainerStyle={styles.listContainer}
       />
-      <Pressable 
-        style={({pressed}) => [
+      <Pressable
+        style={({ pressed }) => [
           styles.createButton,
-          pressed && globalStyles.buttonPressed
+          pressed && globalStyles.buttonPressed,
         ]}
         onPress={() => router.push('/(tabs)/create-project')}
       >
@@ -103,7 +93,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   projectCard: {
-    marginBottom: 0, // Override globalStyles.card marginBottom
+    marginBottom: 0, 
   },
   createButton: {
     position: 'absolute',
@@ -115,10 +105,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.25)',
     elevation: 5,
   },
   createButtonText: {

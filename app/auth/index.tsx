@@ -1,19 +1,22 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Animated } from 'react-native';
+import { StyleSheet, TextInput, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { authService } from '../../services/auth';
+import { useAppDispatch, useAppSelector } from '@/store';
+import { login, register } from '@/store/authSlice';
 
 function AuthScreen() {
   const [isLogin, setIsLogin] = useState(true);
-  const [loading, setLoading] = useState(false);
   const [credentials, setCredentials] = useState({
     username: '',
     email: '',
     password: '',
     confirmPassword: '',
   });
+
+  const dispatch = useAppDispatch();
+  const { status } = useAppSelector((state) => state.auth);
 
   const validateForm = () => {
     if (!credentials.username.trim() || !credentials.password.trim()) {
@@ -43,36 +46,37 @@ function AuthScreen() {
     if (!validateForm()) return;
 
     try {
-      setLoading(true);
       if (isLogin) {
-        await authService.login({
-          username: credentials.username,
-          password: credentials.password,
-        });
+        const resultAction = await dispatch(
+          login({ username: credentials.username, password: credentials.password })
+        );
+        if (login.fulfilled.match(resultAction)) {
+          router.replace('/(tabs)');
+        } else {
+          Alert.alert('Erreur', 'Identifiants incorrects ou problème de connexion');
+        }
       } else {
-        await authService.register({
-          username: credentials.username,
-          email: credentials.email,
-          password: credentials.password,
-        });
+        const resultAction = await dispatch(
+          register({
+            username: credentials.username,
+            email: credentials.email,
+            password: credentials.password,
+          })
+        );
+        if (register.fulfilled.match(resultAction)) {
+          router.replace('/(tabs)');
+        } else {
+          Alert.alert("Erreur", "L'inscription a échoué. Veuillez réessayer.");
+        }
       }
-      router.replace('/(tabs)');
     } catch (error) {
       console.error('Auth error:', error);
-      Alert.alert(
-        'Erreur',
-        isLogin 
-          ? 'Identifiants incorrects ou problème de connexion'
-          : "L'inscription a échoué. Veuillez réessayer."
-      );
-    } finally {
-      setLoading(false);
+      Alert.alert('Erreur', 'Une erreur est survenue.');
     }
   };
 
   const toggleMode = () => {
     setIsLogin(!isLogin);
-    // Réinitialiser les champs lors du changement de mode
     setCredentials({
       username: '',
       email: '',
@@ -145,11 +149,11 @@ function AuthScreen() {
           )}
 
           <Pressable
-            style={[styles.button, loading && styles.buttonDisabled]}
+            style={[styles.button, status === 'loading' && styles.buttonDisabled]}
             onPress={handleSubmit}
-            disabled={loading}
+            disabled={status === 'loading'}
           >
-            {loading ? (
+            {status === 'loading' ? (
               <ActivityIndicator color="white" />
             ) : (
               <Text style={styles.buttonText}>
@@ -175,73 +179,20 @@ function AuthScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 32,
-    opacity: 0.7,
-  },
-  form: {
-    gap: 16,
-  },
-  inputContainer: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  input: {
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  toggleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 4,
-    marginTop: 16,
-  },
-  toggleText: {
-    fontSize: 14,
-  },
-  toggleLink: {
-    fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
+  container: { flex: 1 },
+  content: { flex: 1, padding: 20, justifyContent: 'center' },
+  title: { fontSize: 32, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 },
+  subtitle: { fontSize: 16, textAlign: 'center', marginBottom: 32, opacity: 0.7 },
+  form: { gap: 16 },
+  inputContainer: { gap: 8 },
+  label: { fontSize: 16, fontWeight: '500' },
+  input: { backgroundColor: '#f8f9fa', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, fontSize: 16 },
+  button: { backgroundColor: '#007AFF', padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 8 },
+  buttonDisabled: { opacity: 0.7 },
+  buttonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  toggleContainer: { flexDirection: 'row', justifyContent: 'center', gap: 4, marginTop: 16 },
+  toggleText: { fontSize: 14 },
+  toggleLink: { fontSize: 14, color: '#007AFF', fontWeight: '500' },
 });
 
 export default AuthScreen;
