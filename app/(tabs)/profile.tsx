@@ -3,6 +3,7 @@ import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { Text } from '@/components/Themed';
 import { globalStyles, spacing, colors } from '@/styles/theme';
 import { useAppSelector } from '@/store';
+import { getRoleLabel } from '@/types/role';
 
 export default function ProfileScreen() {
   const { user, status, error } = useAppSelector((state) => state.auth);
@@ -31,7 +32,7 @@ export default function ProfileScreen() {
 
           <View style={styles.infoContainer}>
             <Text style={styles.label}>Rôle :</Text>
-            <Text style={styles.value}>{user.role}</Text>
+            <Text style={styles.value}>{getRoleLabel(user.roleName)}</Text>
           </View>
         </>
       )}
