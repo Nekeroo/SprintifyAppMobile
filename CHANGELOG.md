@@ -1,4 +1,21 @@
 
+<a name="v1.5.0"></a>
+## [v1.5.0](https://github.com/Nekeroo/Sprintify/compare/v1.4.0...v1.5.0)
+
+> 2025-08-13
+
+### Chore
+
+* fix des erreurs de persistence dans les différents composants
+* update composant avec slices
+* utilisation redux pour persistance des données + modification dans chaque composant
+* update changelog
+
+### Pull Requests
+
+* Merge pull request [#2](https://github.com/Nekeroo/Sprintify/issues/2) from Nekeroo/chore-redux
+
+
 <a name="v1.4.0"></a>
 ## [v1.4.0](https://github.com/Nekeroo/Sprintify/compare/v1.3.0...v1.4.0)
 
