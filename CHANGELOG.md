@@ -1,4 +1,14 @@
 
+<a name="v1.5.1"></a>
+## [v1.5.1](https://github.com/Nekeroo/Sprintify/compare/v1.5.0...v1.5.1)
+
+> 2025-08-13
+
+### Fix
+
+* affichage role
+
+
 <a name="v1.5.0"></a>
 ## [v1.5.0](https://github.com/Nekeroo/Sprintify/compare/v1.4.0...v1.5.0)
 
