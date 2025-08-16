@@ -346,11 +346,15 @@ const styles = StyleSheet.create({
   },
 
   taskCard: {
-    backgroundColor: colors.background.primary,
-    borderRadius: 8,
-    padding: spacing.sm,
-    marginBottom: spacing.sm,
-    elevation: 1,
+    backgroundColor: "#ffffff",
+    borderRadius: 10,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -358,7 +362,7 @@ const styles = StyleSheet.create({
 
   taskTitle: {
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "600", 
     marginBottom: spacing.xs,
     color: colors.text.primary,
   },
@@ -390,7 +394,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: colors.background.primary,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -471,3 +475,4 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
+
