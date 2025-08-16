@@ -1,4 +1,16 @@
 
+<a name="v1.6.1"></a>
+## [v1.6.1](https://github.com/Nekeroo/SprintifyAppMobile/compare/v1.6.0...v1.6.1)
+
+> 2025-08-16
+
+### Chore
+
+* modif trash
+* changement css pour sprint detail
+* changelog.md
+
+
 <a name="v1.6.0"></a>
 ## [v1.6.0](https://github.com/Nekeroo/SprintifyAppMobile/compare/v1.5.1...v1.6.0)
 
