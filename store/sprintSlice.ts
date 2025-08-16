@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { sprintService } from '@/services/sprint';
 import type { SprintOverview } from '@/types/sprint';
+import { Stat } from '@/types/stat';
 
 type ProjectSprintsState = {
   items: SprintOverview[];
@@ -10,10 +11,16 @@ type ProjectSprintsState = {
 
 type SprintState = {
   byProject: Record<string, ProjectSprintsState>;
+  statsBySprint: Record<string, {
+    data: Stat | null;
+    status: 'idle' | 'loading' | 'succeeded' | 'failed';
+    error: string | null;
+  }>;
 };
 
 const initialState: SprintState = {
   byProject: {},
+  statsBySprint: {},
 };
 
 export const getSprints = createAsyncThunk(
@@ -43,6 +50,14 @@ export const deleteSprint = createAsyncThunk(
   ) => {
     await sprintService.deleteSprint(sprintName);
     return await dispatch(getSprints(projectName)).unwrap();
+  }
+);
+
+export const getSprintStats = createAsyncThunk(
+  'sprint/getSprintStats',
+  async (sprintName: string) => {
+    const stats = await sprintService.statSprint(sprintName);
+    return { sprintName, stats };
   }
 );
 
@@ -110,7 +125,37 @@ const sprintSlice = createSlice({
             error: null,
           };
         }
-      );
+      )
+      .addCase(getSprintStats.pending, (state, action) => {
+        if (!state.statsBySprint) state.statsBySprint = {};
+        const sprintName = action.meta.arg;
+        state.statsBySprint[sprintName] = {
+          data: null,
+          status: 'loading',
+          error: null,
+        };
+      })
+      .addCase(
+        getSprintStats.fulfilled,
+        (state, action: PayloadAction<{ sprintName: string; stats: Stat }>) => {
+          if (!state.statsBySprint) state.statsBySprint = {};
+          const { sprintName, stats } = action.payload;
+          state.statsBySprint[sprintName] = {
+            data: stats,
+            status: 'succeeded',
+            error: null,
+          };
+        }
+      )
+      .addCase(getSprintStats.rejected, (state, action) => {
+        if (!state.statsBySprint) state.statsBySprint = {};
+        const sprintName = action.meta.arg;
+        state.statsBySprint[sprintName] = {
+          data: null,
+          status: 'failed',
+          error: action.error.message || 'Erreur lors du chargement des stats',
+        };
+      });
   },
 });
 

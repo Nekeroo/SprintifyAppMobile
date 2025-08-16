@@ -1,4 +1,5 @@
-import { Sprint, SprintOverview } from "../types/sprint";
+import { Stat } from "@/types/stat";
+import { SprintOverview } from "../types/sprint";
 import { Task, TasksByStatus } from "../types/task";
 
 interface CreateSprintData {
@@ -63,16 +64,6 @@ export const sprintService = {
     return response;
   },
   
-  getTasks: async (sprintName: string): Promise<Task[]> => {
-    const response = await fetch(`${API_URL}/tasks/${encodeURIComponent(sprintName)}`);
-    
-    if (!response.ok) {
-      throw new Error('Erreur lors de la récupération des tâches');
-    }
-
-    return response.json();
-  },
-  
   // Fonction utilitaire pour organiser les tâches par statut (colonnes)
   organizeTasksByStatus: (tasks: Task[]): TasksByStatus => {
     return tasks.reduce((acc: TasksByStatus, task: Task) => {
@@ -83,40 +74,7 @@ export const sprintService = {
       return acc;
     }, {});
   },
-  
-  // Crée une nouvelle tâche dans un sprint
-  createTask: async (sprintName: string, data: CreateTaskData): Promise<Response> => {
-    const response = await fetch(`${API_URL}/tasks/${encodeURIComponent(sprintName)}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      throw new Error('Erreur lors de la création de la tâche');
-    }
-
-    return response;
-  },
-  
-  // Met à jour une tâche existante
-  updateTask: async (taskName: string, updatedTask: UpdateTaskData): Promise<Response> => {
-      const response = await fetch(`${API_URL}/tasks/update/${encodeURIComponent(taskName)}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(updatedTask),
-    });
-
-    if (!response.ok) {
-      throw new Error('Erreur lors de la mise à jour de la tâche');
-    }
-
-    return response;
-  },
+   
 
   deleteSprint: async (sprintName: string): Promise<Response> => {
     const response = await fetch(`${API_URL}/sprints/delete/${encodeURIComponent(sprintName)}`, {
@@ -130,15 +88,15 @@ export const sprintService = {
     return response;
   },
 
-  deleteTask: async (taskName: string): Promise<Response> => {
-    const response = await fetch(`${API_URL}/tasks/delete/${encodeURIComponent(taskName)}`, {
-      method: 'DELETE',
-    });
-
+  statSprint: async (sprintName: string) : Promise<Stat> => {
+    const response = await fetch(`${API_URL}/sprints/${encodeURIComponent(sprintName)}/stats`);
+    
     if (!response.ok) {
-      throw new Error('Erreur lors de la suppression de la tâche');
+      throw new Error('Erreur lors de la récupération des stats');
     }
 
-    return response;
+    return response.json();
   },
+
+
 };

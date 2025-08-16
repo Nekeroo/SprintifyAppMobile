@@ -13,7 +13,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { globalStyles, colors, spacing } from "@/styles/theme";
 import { FontAwesome } from "@expo/vector-icons";
 import { useAppDispatch, useAppSelector } from "@/store";
-import { getSprints } from "@/store/sprintSlice";
+import { getSprints, getSprintStats } from "@/store/sprintSlice";
 import {
   getTasks,
   updateTask,
@@ -41,6 +41,11 @@ export default function SprintDetailScreen() {
   const isLoadingTasks = tasksState?.status === "loading";
   const tasksError = tasksState?.error;
 
+  const statsState = useAppSelector((state) => {
+    const root = state?.sprint;
+    return root?.statsBySprint ? root.statsBySprint[sprintName as string] : undefined;
+  });
+
   const [tasksByStatus, setTasksByStatus] = useState<TasksByStatus>({});
   const [statusColumns, setStatusColumns] = useState<string[]>([]);
   const [taskModalVisible, setTaskModalVisible] = useState(false);
@@ -49,6 +54,8 @@ export default function SprintDetailScreen() {
 
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+
+  const [statsModalVisible, setStatsModalVisible] = useState(false);
 
   useEffect(() => {
     if (tasks.length > 0) {
@@ -110,6 +117,18 @@ export default function SprintDetailScreen() {
     }
   };
 
+  const handleOpenStats = async () => {
+    if (!sprintName) return;
+    setStatsModalVisible(true);
+    try {
+      const res = await dispatch(getSprintStats(sprintName as string)).unwrap();
+      console.log('[getSprintStats] success:', res);
+    } catch (e) {
+      console.error('[getSprintStats] error:', e);
+    }
+  };
+  
+
   const renderTaskCard = ({ item }: { item: Task }) => (
     <View style={styles.taskCard}>
       <Pressable
@@ -154,7 +173,7 @@ export default function SprintDetailScreen() {
           setDeleteModalVisible(true);
         }}
       >
-        <FontAwesome name="trash" size={16} color={colors.background}/>
+        <FontAwesome name="trash" size={16} color={colors.background} />
       </Pressable>
     </View>
   );
@@ -202,16 +221,31 @@ export default function SprintDetailScreen() {
         <Text style={globalStyles.title}>
           {currentSprint?.name || sprintName}
         </Text>
-        <Pressable
-          style={({ pressed }) => [
-            styles.addTaskButton,
-            pressed && globalStyles.buttonPressed,
-          ]}
-          onPress={() => setCreateTaskModalVisible(true)}
-        >
-          <FontAwesome name="plus" size={16} color={colors.text.primary} />
-          <Text style={styles.addTaskButtonText}>Nouvelle tâche</Text>
-        </Pressable>
+        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+          {/* Bouton stats */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.statsButton,
+              pressed && globalStyles.buttonPressed,
+            ]}
+            onPress={handleOpenStats}
+          >
+            <FontAwesome name="bar-chart" size={16} color={colors.text.onSecondary} />
+            <Text style={styles.statsButtonText}>Stats</Text>
+          </Pressable>
+
+          {/* Bouton nouvelle tâche */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.addTaskButton,
+              pressed && globalStyles.buttonPressed,
+            ]}
+            onPress={() => setCreateTaskModalVisible(true)}
+          >
+            <FontAwesome name="plus" size={16} color={colors.text.primary} />
+            <Text style={styles.addTaskButtonText}>Nouvelle tâche</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -266,6 +300,7 @@ export default function SprintDetailScreen() {
           sprintName={sprintName as string}
         />
 
+        {/* Modale suppression */}
         <Modal
           visible={deleteModalVisible}
           transparent
@@ -279,24 +314,54 @@ export default function SprintDetailScreen() {
               </Text>
               <View style={styles.modalActions}>
                 <Pressable
-                  style={[
-                    styles.modalButton,
-                    { backgroundColor: colors.error },
-                  ]}
+                  style={[styles.modalButton, { backgroundColor: colors.error }]}
                   onPress={handleDeleteTask}
                 >
                   <Text style={styles.modalButtonText}>Supprimer</Text>
                 </Pressable>
                 <Pressable
-                  style={[
-                    styles.modalButton,
-                    { backgroundColor: colors.primary },
-                  ]}
+                  style={[styles.modalButton, { backgroundColor: colors.primary }]}
                   onPress={() => setDeleteModalVisible(false)}
                 >
                   <Text style={styles.modalButtonText}>Annuler</Text>
                 </Pressable>
               </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modale stats */}
+        <Modal
+          visible={statsModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setStatsModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={globalStyles.title}>Statistiques</Text>
+              {statsState?.status === "loading" && (
+                <ActivityIndicator size="large" color={colors.primary} />
+              )}
+              {statsState?.status === "failed" && (
+                <Text style={globalStyles.errorText}>
+                  {statsState.error || "Erreur lors du chargement des stats"}
+                </Text>
+              )}
+              {statsState?.status === "succeeded" && statsState.data && (
+                <>
+                  <Text style={styles.statsItem}>Nb tâches : {statsState.data.nbTask}</Text>
+                  <Text style={styles.statsItem}>Terminées : {statsState.data.nbTaskDone}</Text>
+                  <Text style={styles.statsItem}>Non terminées : {statsState.data.nbTaskNotDone}</Text>
+                  <Text style={styles.statsItem}>Capacité : {statsState.data.capacity}</Text>
+                </>
+              )}
+              <Pressable
+                style={[globalStyles.button, { marginTop: spacing.md }]}
+                onPress={() => setStatsModalVisible(false)}
+              >
+                <Text style={globalStyles.buttonText}>Fermer</Text>
+              </Pressable>
             </View>
           </View>
         </Modal>
@@ -311,11 +376,9 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     backgroundColor: colors.background.primary,
   },
-
   columns: {
     paddingRight: spacing.lg,
   },
-
   statusColumn: {
     width: 280,
     marginRight: spacing.md,
@@ -323,20 +386,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: spacing.sm,
   },
-
   statusHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: spacing.sm,
   },
-
   statusTitle: {
     fontSize: 16,
     fontWeight: "bold",
     color: colors.text.primary,
   },
-
   statusCount: {
     backgroundColor: colors.background.tertiary,
     paddingHorizontal: spacing.sm,
@@ -344,7 +404,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.text.primary,
   },
-
   taskCard: {
     backgroundColor: "#ffffff",
     borderRadius: 10,
@@ -359,37 +418,31 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-
   taskTitle: {
     fontSize: 16,
-    fontWeight: "600", 
+    fontWeight: "600",
     marginBottom: spacing.xs,
     color: colors.text.primary,
   },
-
   taskDescription: {
     fontSize: 14,
     color: colors.text.secondary,
     marginBottom: spacing.sm,
   },
-
   taskFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-
   taskAssignee: {
     fontSize: 12,
     color: colors.text.secondary,
   },
-
   taskUnassigned: {
     fontSize: 12,
     color: colors.text.secondary,
     fontStyle: "italic",
   },
-
   storyPoints: {
     width: 24,
     height: 24,
@@ -398,20 +451,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   storyPointsText: {
     fontSize: 10,
     fontWeight: "bold",
     color: colors.text.primary,
   },
-
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: spacing.md,
   },
-
   addTaskButton: {
     backgroundColor: colors.primary,
     flexDirection: "row",
@@ -420,13 +470,24 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: 4,
   },
-
   addTaskButtonText: {
     color: colors.text.onPrimary,
     fontWeight: "500",
     marginLeft: spacing.xs,
   },
-
+  statsButton: {
+    backgroundColor: colors.secondary,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 4,
+  },
+  statsButtonText: {
+    color: colors.text.onSecondary,
+    fontWeight: "500",
+    marginLeft: spacing.xs,
+  },
   deleteButton: {
     paddingVertical: 6,
     paddingHorizontal: 12,
@@ -434,12 +495,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginLeft: spacing.sm,
   },
-
-  deleteButtonText: {
-    color: colors.background,
-    fontWeight: "bold",
-  },
-
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -447,32 +502,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: spacing.md,
   },
-
   modalContent: {
     backgroundColor: colors.background,
     borderRadius: 12,
     padding: spacing.lg,
     width: "80%",
-    alignItems: "center",
-    gap: spacing.md,
+    alignItems: "flex-start",
   },
-
   modalActions: {
     flexDirection: "row",
     gap: spacing.md,
     width: "100%",
   },
-
   modalButton: {
     flex: 1,
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: "center",
   },
-
   modalButtonText: {
     color: colors.background,
     fontWeight: "bold",
   },
+  statsItem: {
+    fontSize: 16,
+    marginBottom: spacing.sm,
+    color: colors.text.primary,
+  },
 });
-

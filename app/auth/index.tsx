@@ -51,7 +51,7 @@ function AuthScreen() {
           login({ username: credentials.username, password: credentials.password })
         );
         if (login.fulfilled.match(resultAction)) {
-          router.replace('/(tabs)');
+          router.replace('/(tabs)/projects');
         } else {
           Alert.alert('Erreur', 'Identifiants incorrects ou problème de connexion');
         }

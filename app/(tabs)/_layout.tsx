@@ -45,6 +45,7 @@ export default function TabLayout() {
   {/* Tes écrans déjà masqués */}
   <Tabs.Screen name="project-detail" options={{ href: null }} />
   <Tabs.Screen name="create-project" options={{ href: null }} />
+  <Tabs.Screen name="sprint-detail" options={{ href: null }} />
 </Tabs>
   );
 }
