@@ -6,7 +6,6 @@ import { LoginCredentials, RegisterCredentials, AuthResponse, User } from '../ty
 const API_URL = 'http://sprintify.mathieugr.fr:3000/api';
 const TOKEN_KEY = '@auth_token';
 
-// Configure axios avec un intercepteur pour ajouter le token
 axios.interceptors.request.use(
   async (config) => {
     const token = await AsyncStorage.getItem(TOKEN_KEY);
@@ -20,7 +19,6 @@ axios.interceptors.request.use(
   }
 );
 
-// Intercepteur pour gérer les réponses 401
 axios.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -96,7 +94,6 @@ export const authService = {
       return response.data;
     } catch (error) {
       console.error('Get me error:', error);
-      throw error;
     }
   }
 };

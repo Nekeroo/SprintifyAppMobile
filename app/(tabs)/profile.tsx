@@ -1,12 +1,25 @@
 import React from 'react';
-import { StyleSheet, View, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, Pressable } from 'react-native';
 import { Text } from '@/components/Themed';
 import { globalStyles, spacing, colors } from '@/styles/theme';
-import { useAppSelector } from '@/store';
+import { useAppDispatch, useAppSelector } from '@/store';
 import { getRoleLabel } from '@/types/role';
+import { logout } from '@/store/authSlice';
+import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
   const { user, status, error } = useAppSelector((state) => state.auth);
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await dispatch(logout()).unwrap();
+      router.replace('auth/index');
+    } catch (e) {
+      console.error('Logout error', e);
+    }
+  };
 
   return (
     <View style={globalStyles.container}>
@@ -34,11 +47,16 @@ export default function ProfileScreen() {
             <Text style={styles.label}>Rôle :</Text>
             <Text style={styles.value}>{getRoleLabel(user.roleName)}</Text>
           </View>
+
+          <Pressable style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutText}>Se déconnecter</Text>
+          </Pressable>
         </>
       )}
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   infoContainer: {
@@ -60,4 +78,18 @@ const styles = StyleSheet.create({
     color: colors.error,
     marginVertical: spacing.md,
   },
+  logoutButton: {
+    marginTop: spacing.md,
+    alignSelf: 'flex-start', 
+    backgroundColor: colors.error,
+    paddingVertical: spacing.xs,  
+    paddingHorizontal: spacing.md,
+    borderRadius: 6,
+  },
+  logoutText: {
+    color: colors.background,
+    fontWeight: '600',
+    fontSize: 14,
+  },
 });
+
