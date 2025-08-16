@@ -1,4 +1,19 @@
 
+<a name="v1.6.0"></a>
+## [v1.6.0](https://github.com/Nekeroo/SprintifyAppMobile/compare/v1.5.1...v1.6.0)
+
+> 2025-08-16
+
+### Chore
+
+* update changlog template and changelog file
+* update changelog.md
+
+### Feat
+
+* Ajout suppression objets
+
+
 <a name="v1.5.1"></a>
 ## [v1.5.1](https://github.com/Nekeroo/SprintifyAppMobile/compare/v1.5.0...v1.5.1)
 
