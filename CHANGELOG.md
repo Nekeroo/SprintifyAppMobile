@@ -1,4 +1,18 @@
 
+<a name="1.7.1"></a>
+## [1.7.1](https://github.com/Nekeroo/SprintifyAppMobile/compare/v1.7.0...1.7.1)
+
+> 2025-08-17
+
+### Chore
+
+* update changelog
+
+### Feat
+
+* ajout déconnexion
+
+
 <a name="v1.7.0"></a>
 ## [v1.7.0](https://github.com/Nekeroo/SprintifyAppMobile/compare/v1.6.1...v1.7.0)
 
