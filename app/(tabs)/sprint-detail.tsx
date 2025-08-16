@@ -154,7 +154,7 @@ export default function SprintDetailScreen() {
           setDeleteModalVisible(true);
         }}
       >
-        <FontAwesome name="trash" size={16} />
+        <FontAwesome name="trash" size={16} color={colors.background}/>
       </Pressable>
     </View>
   );

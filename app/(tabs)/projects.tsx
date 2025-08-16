@@ -13,6 +13,7 @@ import { globalStyles, colors, spacing } from '@/styles/theme';
 
 import { useAppDispatch, useAppSelector } from '@/store';
 import { getProjects, deleteProject } from '@/store/projectSlice';
+import { FontAwesome } from '@expo/vector-icons';
 
 export default function ProjectsScreen() {
   const dispatch = useAppDispatch();
@@ -93,8 +94,8 @@ export default function ProjectsScreen() {
           Nombre de sprints: {item.nbSprint}
         </Text>
       </Pressable>
-
-      {/* Bouton supprimer */}
+  
+      {/* Bouton supprimer (cohérent avec Sprint/Task) */}
       <Pressable
         onPress={() => openDeleteModal(item.name)}
         style={({ pressed }) => [
@@ -102,7 +103,7 @@ export default function ProjectsScreen() {
           pressed && globalStyles.buttonPressed,
         ]}
       >
-        <Text style={styles.deleteButtonText}>Supprimer</Text>
+        <FontAwesome name="trash" size={16} color={colors.background} />
       </Pressable>
     </View>
   );
@@ -174,10 +175,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.error,
     borderRadius: 6,
     marginLeft: spacing.sm,
-  },
-  deleteButtonText: {
-    color: colors.background,
-    fontWeight: 'bold',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   createButton: {
     position: 'absolute',
@@ -227,3 +226,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
