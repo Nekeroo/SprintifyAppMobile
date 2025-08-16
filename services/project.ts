@@ -12,6 +12,8 @@ interface CreateProjectData {
 }
 
 export const projectService = {
+
+  
   async getAllProjects(): Promise<ProjectOverview[]> {
     try {
       const token = await authService.getToken();
@@ -68,6 +70,20 @@ export const projectService = {
       return response.data;
     } catch (error) {
       console.error('Get project details error:', error);
+      throw error;
+    }
+  },
+  async deleteProject(projectName: string): Promise<void> {
+    try {
+      const token = await authService.getToken();
+      if (!token) throw new Error('Non authentifié');
+
+      await axios.delete(
+        `${API_URL}/projects/delete/${encodeURIComponent(projectName)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (error) {
+      console.error('Delete project error:', error);
       throw error;
     }
   },

@@ -1,5 +1,5 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { sprintService } from '@/services/sprint';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { taskService } from '@/services/task';
 import type { Task } from '@/types/task';
 
 type TaskState = {
@@ -17,16 +17,38 @@ const initialState: TaskState = {
 export const getTasks = createAsyncThunk(
   'task/getTasks',
   async (sprintName: string) => {
-    return await sprintService.getTasks(sprintName);
+    return await taskService.getTasks(sprintName);
   }
 );
 
 export const createTask = createAsyncThunk(
   'task/createTask',
-  async ({ sprintName, data }: { sprintName: string; data: any }, { dispatch }) => {
-    await sprintService.createTask(sprintName, data);
-    const updatedTasks = await dispatch(getTasks(sprintName)).unwrap();
-    return updatedTasks;
+  async ({ sprintName, data }: { sprintName: string; data: Omit<Task, 'id'> }, { dispatch }) => {
+    await taskService.createTask(sprintName, data);
+    return await dispatch(getTasks(sprintName)).unwrap();
+  }
+);
+
+export const updateTask = createAsyncThunk(
+  'task/updateTask',
+  async ({ sprintName, task }: { sprintName: string; task: Task }, { dispatch }) => {
+    await taskService.updateTask(task.title, {
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      dueDate: task.dueDate,
+      usernameAssignee: task.usernameAssignee,
+      storyPoints: task.storyPoints,
+    });
+    return await dispatch(getTasks(sprintName)).unwrap();
+  }
+);
+
+export const deleteTask = createAsyncThunk(
+  'task/deleteTask',
+  async ({ sprintName, taskTitle }: { sprintName: string; taskTitle: string }, { dispatch }) => {
+    await taskService.deleteTask(taskTitle);
+    return await dispatch(getTasks(sprintName)).unwrap();
   }
 );
 
@@ -40,7 +62,7 @@ const taskSlice = createSlice({
         state.status = 'loading';
         state.error = null;
       })
-      .addCase(getTasks.fulfilled, (state, action) => {
+      .addCase(getTasks.fulfilled, (state, action: PayloadAction<Task[]>) => {
         state.status = 'succeeded';
         state.items = action.payload;
       })
@@ -48,7 +70,17 @@ const taskSlice = createSlice({
         state.status = 'failed';
         state.error = action.error.message || 'Erreur lors du chargement des tâches';
       })
-      .addCase(createTask.fulfilled, (state, action) => {
+
+      .addCase(createTask.fulfilled, (state, action: PayloadAction<Task[]>) => {
+        state.items = action.payload;
+        state.status = 'succeeded';
+      })
+
+      .addCase(updateTask.fulfilled, (state, action: PayloadAction<Task[]>) => {
+        state.items = action.payload;
+        state.status = 'succeeded';
+      })
+      .addCase(deleteTask.fulfilled, (state, action: PayloadAction<Task[]>) => {
         state.items = action.payload;
         state.status = 'succeeded';
       });

@@ -116,5 +116,29 @@ export const sprintService = {
     }
 
     return response;
-  }
+  },
+
+  deleteSprint: async (sprintName: string): Promise<Response> => {
+    const response = await fetch(`${API_URL}/sprints/delete/${encodeURIComponent(sprintName)}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      throw new Error('Erreur lors de la suppression du sprint');
+    }
+
+    return response;
+  },
+
+  deleteTask: async (taskName: string): Promise<Response> => {
+    const response = await fetch(`${API_URL}/tasks/delete/${encodeURIComponent(taskName)}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      throw new Error('Erreur lors de la suppression de la tâche');
+    }
+
+    return response;
+  },
 };

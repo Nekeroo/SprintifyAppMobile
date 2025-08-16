@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { sprintService } from '@/services/sprint';
 import type { SprintOverview } from '@/types/sprint';
-import type { Task } from '@/types/task';
 
 type ProjectSprintsState = {
   items: SprintOverview[];
@@ -9,24 +8,12 @@ type ProjectSprintsState = {
   error: string | null;
 };
 
-type TasksState = {
-  items: Task[];
-  status: 'idle' | 'loading' | 'succeeded' | 'failed';
-  error: string | null;
-};
-
 type SprintState = {
   byProject: Record<string, ProjectSprintsState>;
-  tasks: TasksState;
 };
 
 const initialState: SprintState = {
   byProject: {},
-  tasks: {
-    items: [],
-    status: 'idle',
-    error: null
-  }
 };
 
 export const getSprints = createAsyncThunk(
@@ -43,51 +30,19 @@ export const createSprint = createAsyncThunk(
     { projectName, data }: { projectName: string; data: any },
     { dispatch }
   ) => {
-    
     await sprintService.createSprint(projectName, data);
-
-    const { sprints } = await dispatch(getSprints(projectName)).unwrap();
-
-    return sprints;
+    return await dispatch(getSprints(projectName)).unwrap();
   }
 );
 
-export const getTasks = createAsyncThunk(
-  'sprint/getTasks',
-  async (sprintName: string) => {
-    const tasks = await sprintService.getTasks(sprintName);
-    return tasks;
-  }
-);
-
-export const updateTask = createAsyncThunk(
-  'sprint/updateTask',
-  async ({ sprintName, task }: { sprintName: string; task: Task }, { dispatch }) => {
-    await sprintService.updateTask(task.title, {
-      title: task.title,
-      description: task.description,
-      status: task.status,
-      dueDate: task.dueDate,
-      usernameAssignee: task.usernameAssignee,
-      storyPoints: task.storyPoints,
-    });
-    const tasks = await dispatch(getTasks(sprintName)).unwrap();
-    return tasks;
-  }
-);
-
-export const createTask = createAsyncThunk(
-  'sprint/createTask',
-  async ({ sprintName, task }: { sprintName: string; task: Omit<Task, 'id'> }, { dispatch }) => {
-    await sprintService.createTask(sprintName, {
-      name: task.title,
-      description: task.description,
-      dueDate: task.dueDate || '',
-      storyPoints: task.storyPoints,
-      assignee: task.usernameAssignee,
-    });
-    const tasks = await dispatch(getTasks(sprintName)).unwrap();
-    return tasks;
+export const deleteSprint = createAsyncThunk(
+  'sprint/deleteSprint',
+  async (
+    { projectName, sprintName }: { projectName: string; sprintName: string },
+    { dispatch }
+  ) => {
+    await sprintService.deleteSprint(sprintName);
+    return await dispatch(getSprints(projectName)).unwrap();
   }
 );
 
@@ -97,7 +52,6 @@ const sprintSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      // Gestion des sprints par projet
       .addCase(getSprints.pending, (state, action) => {
         const projectName = action.meta.arg;
         if (!state.byProject[projectName]) {
@@ -146,65 +100,17 @@ const sprintSlice = createSlice({
           };
         }
       )
-      // Gestion des tâches
-      .addCase(getTasks.pending, (state) => {
-        if (!state.tasks) {
-          state.tasks = {
-            items: [],
-            status: 'idle',
-            error: null
+      .addCase(
+        deleteSprint.fulfilled,
+        (state, action: PayloadAction<{ projectName: string; sprints: SprintOverview[] }>) => {
+          const { projectName, sprints } = action.payload;
+          state.byProject[projectName] = {
+            items: sprints,
+            status: 'succeeded',
+            error: null,
           };
         }
-        state.tasks.status = 'loading';
-        state.tasks.error = null;
-      })
-      .addCase(getTasks.fulfilled, (state, action: PayloadAction<Task[]>) => {
-        if (!state.tasks) {
-          state.tasks = {
-            items: [],
-            status: 'idle',
-            error: null
-          };
-        }
-        state.tasks = {
-          items: action.payload,
-          status: 'succeeded',
-          error: null,
-        };
-      })
-      .addCase(getTasks.rejected, (state, action) => {
-        if (!state.tasks) {
-          state.tasks = {
-            items: [],
-            status: 'idle',
-            error: null
-          };
-        }
-        state.tasks.status = 'failed';
-        state.tasks.error = action.error.message || 'Erreur lors du chargement des tâches';
-      })
-      .addCase(updateTask.fulfilled, (state, action: PayloadAction<Task[]>) => {
-        if (!state.tasks) {
-          state.tasks = {
-            items: [],
-            status: 'idle',
-            error: null
-          };
-        }
-        state.tasks.items = action.payload;
-        state.tasks.status = 'succeeded';
-      })
-      .addCase(createTask.fulfilled, (state, action: PayloadAction<Task[]>) => {
-        if (!state.tasks) {
-          state.tasks = {
-            items: [],
-            status: 'idle',
-            error: null
-          };
-        }
-        state.tasks.items = action.payload;
-        state.tasks.status = 'succeeded';
-      });
+      );
   },
 });
 

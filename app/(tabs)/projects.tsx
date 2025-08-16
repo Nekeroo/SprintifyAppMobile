@@ -1,12 +1,18 @@
-import React, { useCallback } from 'react';
-import { StyleSheet, FlatList, View, Pressable } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import {
+  StyleSheet,
+  FlatList,
+  View,
+  Pressable,
+  Modal,
+} from 'react-native';
 import { Text } from '@/components/Themed';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { globalStyles, colors, spacing } from '@/styles/theme';
 
 import { useAppDispatch, useAppSelector } from '@/store';
-import { getProjects } from '@/store/projectSlice';
+import { getProjects, deleteProject } from '@/store/projectSlice';
 
 export default function ProjectsScreen() {
   const dispatch = useAppDispatch();
@@ -15,6 +21,9 @@ export default function ProjectsScreen() {
   const { items: projects, status, error } = useAppSelector(
     (state) => state.project
   );
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -27,6 +36,24 @@ export default function ProjectsScreen() {
       pathname: '/(tabs)/project-detail',
       params: { project: projectName },
     });
+  };
+
+  const openDeleteModal = (projectName: string) => {
+    setProjectToDelete(projectName);
+    setModalVisible(true);
+  };
+
+  const confirmDelete = () => {
+    if (projectToDelete) {
+      dispatch(deleteProject(projectToDelete));
+      setProjectToDelete(null);
+      setModalVisible(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setProjectToDelete(null);
+    setModalVisible(false);
   };
 
   if (status === 'loading') {
@@ -56,15 +83,28 @@ export default function ProjectsScreen() {
   }
 
   const renderProject = ({ item }: { item: typeof projects[number] }) => (
-    <Pressable onPress={() => handleProjectPress(item.name)}>
-      <View style={[globalStyles.card, styles.projectCard]}>
+    <View style={[globalStyles.card, styles.projectCard]}>
+      <Pressable onPress={() => handleProjectPress(item.name)} style={{ flex: 1 }}>
         <Text style={globalStyles.subtitle}>{item.name}</Text>
-        <Text style={globalStyles.textTertiary}>Créé par: {item.usernameOwner}</Text>
+        <Text style={globalStyles.textTertiary}>
+          Créé par: {item.usernameOwner}
+        </Text>
         <Text style={globalStyles.textTertiary}>
           Nombre de sprints: {item.nbSprint}
         </Text>
-      </View>
-    </Pressable>
+      </Pressable>
+
+      {/* Bouton supprimer */}
+      <Pressable
+        onPress={() => openDeleteModal(item.name)}
+        style={({ pressed }) => [
+          styles.deleteButton,
+          pressed && globalStyles.buttonPressed,
+        ]}
+      >
+        <Text style={styles.deleteButtonText}>Supprimer</Text>
+      </Pressable>
+    </View>
   );
 
   return (
@@ -84,6 +124,36 @@ export default function ProjectsScreen() {
       >
         <Text style={styles.createButtonText}>+</Text>
       </Pressable>
+
+      {/* Modale de confirmation */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={cancelDelete}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={globalStyles.subtitle}>
+              Supprimer le projet "{projectToDelete}" ?
+            </Text>
+            <View style={styles.modalActions}>
+              <Pressable
+                style={[styles.modalButton, { backgroundColor: colors.error }]}
+                onPress={confirmDelete}
+              >
+                <Text style={styles.modalButtonText}>Supprimer</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalButton, { backgroundColor: colors.primary }]}
+                onPress={cancelDelete}
+              >
+                <Text style={styles.modalButtonText}>Annuler</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -93,7 +163,21 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   projectCard: {
-    marginBottom: 0, 
+    marginBottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  deleteButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: colors.error,
+    borderRadius: 6,
+    marginLeft: spacing.sm,
+  },
+  deleteButtonText: {
+    color: colors.background,
+    fontWeight: 'bold',
   },
   createButton: {
     position: 'absolute',
@@ -105,12 +189,41 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.25)',
     elevation: 5,
   },
   createButtonText: {
     color: colors.background,
     fontSize: 24,
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.md,
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: spacing.lg,
+    width: '80%',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: colors.background,
     fontWeight: 'bold',
   },
 });

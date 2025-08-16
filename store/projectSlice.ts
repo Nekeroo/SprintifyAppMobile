@@ -32,6 +32,15 @@ export const createProject = createAsyncThunk(
   }
 );
 
+export const deleteProject = createAsyncThunk(
+  'project/deleteProject',
+  async (projectName: string, { dispatch }) => {
+    await projectService.deleteProject(projectName);
+    const updatedProjects = await dispatch(getProjects()).unwrap();
+    return { updatedProjects, deletedName: projectName };
+  }
+);
+
 export const getProjectDetails = createAsyncThunk(
   'project/getProjectDetails',
   async (projectName: string) => {
@@ -77,6 +86,26 @@ const projectSlice = createSlice({
       .addCase(getProjectDetails.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.error.message || 'Erreur lors de la récupération des détails du projet';
+      })
+      .addCase(deleteProject.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(deleteProject.fulfilled, (state, action) => {
+        const { updatedProjects, deletedName } = action.payload as {
+          updatedProjects: ProjectOverview[];
+          deletedName: string;
+        };
+        state.items = updatedProjects;
+        state.status = 'succeeded';
+
+        if (state.selectedProject && state.selectedProject.name === deletedName) {
+          state.selectedProject = null;
+        }
+      })
+      .addCase(deleteProject.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message || 'Erreur lors de la suppression du projet';
       });
   },
 });

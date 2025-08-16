@@ -1,37 +1,46 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, View, ScrollView, Pressable } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, ScrollView, Pressable, Modal } from 'react-native';
 import { Text } from '@/components/Themed';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { globalStyles, colors, spacing } from '@/styles/theme';
 import { FontAwesome } from '@expo/vector-icons';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { getProjectDetails } from '@/store/projectSlice';
-import { getSprints } from '@/store/sprintSlice';
+import { getSprints, deleteSprint } from '@/store/sprintSlice';
 
 export default function ProjectDetailScreen() {
   const { project, reload } = useLocalSearchParams();
   const router = useRouter();
   const dispatch = useAppDispatch();
 
-  console.log('Project Name:', project);
-
   const { selectedProject: projectData, status: projectStatus, error: projectError } =
     useAppSelector((state) => state.project);
 
   const sprintState = useAppSelector((state) => state.sprint.byProject[project as string]);
-  console.log('Sprint State:', sprintState);
   const sprintData = sprintState?.items || [];
-  console.log('Sprint Data:', sprintData);
   const sprintStatus = sprintState?.status;
   const sprintError = sprintState?.error;
 
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [sprintToDelete, setSprintToDelete] = useState<string | null>(null);
+
   useEffect(() => {
     if (project) {
-      console.log('Dispatching actions for project:', project);
       dispatch(getProjectDetails(project as string));
       dispatch(getSprints(project as string));
     }
   }, [dispatch, project, reload]);
+
+  const handleDeleteSprint = async () => {
+    if (!sprintToDelete) return;
+    try {
+      await dispatch(deleteSprint({ projectName: project as string, sprintName: sprintToDelete })).unwrap();
+      setDeleteModalVisible(false);
+      setSprintToDelete(null);
+    } catch (error) {
+      console.error('Erreur lors de la suppression du sprint:', error);
+    }
+  };
 
   return (
     <View style={globalStyles.container}>
@@ -70,9 +79,7 @@ export default function ProjectDetailScreen() {
               onPress={() =>
                 router.push({
                   pathname: '/create-sprint',
-                  params: {
-                    project: project,
-                  },
+                  params: { project },
                 })
               }
             >
@@ -90,53 +97,81 @@ export default function ProjectDetailScreen() {
               Chargement des données...
             </Text>
           ) : projectError || sprintError ? (
-            <Text
-              style={[globalStyles.textSecondary, { color: colors.error }]}
-            >
+            <Text style={[globalStyles.textSecondary, { color: colors.error }]}>
               {projectError || sprintError}
             </Text>
           ) : sprintData.length === 0 ? (
-            <Text
-              style={[globalStyles.textSecondary, styles.noSprintsText]}
-            >
+            <Text style={[globalStyles.textSecondary, styles.noSprintsText]}>
               Aucun sprint pour ce projet
             </Text>
           ) : (
             sprintData.map((sprint) => (
-              <Pressable
-                key={sprint.name}
-                style={({ pressed }) => [
-                  globalStyles.card,
-                  pressed && globalStyles.buttonPressed,
-                ]}
-                onPress={() =>
-                  router.push({
-                    pathname: '/sprint-detail',
-                    params: { 
-                      sprintName: sprint.name,
-                      project: project 
-                    },
-                  })
-                }
-              >
-                <Text style={globalStyles.subtitle}>{sprint.name}</Text>
-                <Text style={globalStyles.textSecondary}>
-                  Du {new Date(sprint.startDate).toLocaleDateString()} au{' '}
-                  {new Date(sprint.endDate).toLocaleDateString()}
-                </Text>
-                <Text
-                  style={[
-                    globalStyles.textTertiary,
-                    styles.sprintDescription,
-                  ]}
+              <View key={sprint.name} style={[globalStyles.card, styles.sprintCard]}>
+                <Pressable
+                  style={styles.sprintContent}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/sprint-detail',
+                      params: { 
+                        sprintName: sprint.name,
+                        project,
+                      },
+                    })
+                  }
                 >
-                  {sprint.description || 'Aucune description'}
-                </Text>
-              </Pressable>
+                  <Text style={globalStyles.subtitle}>{sprint.name}</Text>
+                  <Text style={globalStyles.textSecondary}>
+                    Du {new Date(sprint.startDate).toLocaleDateString()} au{' '}
+                    {new Date(sprint.endDate).toLocaleDateString()}
+                  </Text>
+                  <Text style={[globalStyles.textTertiary, styles.sprintDescription]}>
+                    {sprint.description || 'Aucune description'}
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  style={({ pressed }) => [styles.deleteButton, pressed && globalStyles.buttonPressed]}
+                  onPress={() => {
+                    setSprintToDelete(sprint.name);
+                    setDeleteModalVisible(true);
+                  }}
+                >
+                  <FontAwesome name="trash" size={16} color={colors.background} />
+                </Pressable>
+              </View>
             ))
           )}
         </View>
       </ScrollView>
+
+      <Modal
+        visible={deleteModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDeleteModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={globalStyles.subtitle}>
+              Supprimer le sprint "{sprintToDelete}" ?
+            </Text>
+            <View style={styles.modalActions}>
+              <Pressable
+                style={[styles.modalButton, { backgroundColor: colors.error }]}
+                onPress={handleDeleteSprint}
+              >
+                <Text style={styles.modalButtonText}>Supprimer</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalButton, { backgroundColor: colors.primary }]}
+                onPress={() => setDeleteModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Annuler</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -184,5 +219,54 @@ const styles = StyleSheet.create({
   },
   sprintDescription: {
     marginTop: spacing.sm,
+  },
+  sprintCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sprintContent: {
+    flex: 1,
+    paddingRight: spacing.sm,
+  },
+  deleteButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: colors.error,
+    borderRadius: 6,
+    marginLeft: spacing.sm,
+    minWidth: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.md,
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: spacing.lg,
+    width: '80%',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: colors.background,
+    fontWeight: 'bold',
   },
 });
