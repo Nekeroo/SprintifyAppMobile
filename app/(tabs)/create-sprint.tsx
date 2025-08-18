@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, ScrollView, Pressable, TextInput } from 'react-native';
-import { Text } from '@/components/Themed';
+import { View, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { globalStyles, colors, spacing } from '@/styles/theme';
 import { FontAwesome } from '@expo/vector-icons';
+import { Button } from '@/components/base/Button';
+import { Input } from '@/components/base/Input';
+import { Card } from '@/components/base/Card';
+import { useTheme } from '@/hooks/useTheme';
+import { Text } from '@/components/Themed';
 import { displayDateToApi, formatDate, isValidDate } from '@/services/dateUtils';
 import { useAppDispatch } from '@/store';
 import { createSprint } from '@/store/sprintSlice';
@@ -61,137 +64,73 @@ export default function CreateSprintScreen() {
     }
   };
 
+  const theme = useTheme();
+
   return (
-    <View style={globalStyles.container}>
-      <Pressable 
-        style={({pressed}) => [
-          styles.backButton,
-          pressed && globalStyles.buttonPressed
-        ]}
+    <View style={theme.components.container}>
+      <Button
+        variant="outline"
         onPress={() => router.back()}
+        leftIcon={<FontAwesome name="arrow-left" size={20} color={theme.colors.text.primary} />}
       >
-        <FontAwesome name="arrow-left" size={20} color={colors.text.primary} />
-        <Text style={styles.backButtonText}>Retour</Text>
-      </Pressable>
+        Retour
+      </Button>
 
-      <ScrollView style={globalStyles.container}>
-        <View style={[globalStyles.card, styles.form]}>
-          <Text style={globalStyles.title}>Nouveau Sprint</Text>
+      <ScrollView style={theme.components.container}>
+        <Card style={{ padding: theme.spacing.md }}>
+          <Text style={theme.components.title}>Nouveau Sprint</Text>
 
-          <View style={styles.formField}>
-            <Text style={styles.label}>Nom</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="Nom du sprint"
-              placeholderTextColor={colors.text.secondary}
-            />
-          </View>
+          <Input
+            label="Nom"
+            value={name}
+            onChangeText={setName}
+            placeholder="Nom du sprint"
+            error={error && !name.trim() ? 'Le nom est requis' : ''}
+          />
 
-          <View style={styles.formField}>
-            <Text style={styles.label}>Description</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Description du sprint"
-              placeholderTextColor={colors.text.secondary}
-              multiline
-              numberOfLines={4}
-            />
-          </View>
+          <Input
+            label="Description"
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Description du sprint"
+            multiline
+            numberOfLines={4}
+            style={{ height: 100, textAlignVertical: 'top' }}
+          />
 
-          <View style={styles.formField}>
-            <Text style={styles.label}>Date de début (JJ/MM/AAAA)</Text>
-            <TextInput
-              style={styles.input}
-              value={startDate}
-              onChangeText={(text) => setStartDate(formatDate(text))}
-              placeholder="JJ/MM/AAAA"
-              placeholderTextColor={colors.text.secondary}
-              keyboardType="numeric"
-              maxLength={10}
-            />
-          </View>
+          <Input
+            label="Date de début (JJ/MM/AAAA)"
+            value={startDate}
+            onChangeText={(text) => setStartDate(formatDate(text))}
+            placeholder="JJ/MM/AAAA"
+            keyboardType="numeric"
+            maxLength={10}
+            error={error && !isValidDate(startDate) ? 'Format de date invalide' : ''}
+          />
 
-          <View style={styles.formField}>
-            <Text style={styles.label}>Date de fin (JJ/MM/AAAA)</Text>
-            <TextInput
-              style={styles.input}
-              value={endDate}
-              onChangeText={(text) => setEndDate(formatDate(text))}
-              placeholder="JJ/MM/AAAA"
-              placeholderTextColor={colors.text.secondary}
-              keyboardType="numeric"
-              maxLength={10}
-            />
-          </View>
+          <Input
+            label="Date de fin (JJ/MM/AAAA)"
+            value={endDate}
+            onChangeText={(text) => setEndDate(formatDate(text))}
+            placeholder="JJ/MM/AAAA"
+            keyboardType="numeric"
+            maxLength={10}
+            error={error && !isValidDate(endDate) ? 'Format de date invalide' : ''}
+          />
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error && !error.includes('requis') && !error.includes('invalide') && (
+            <Text style={{ color: theme.colors.error, marginBottom: theme.spacing.md }}>{error}</Text>
+          )}
 
-          <Pressable
-            style={({pressed}) => [
-              styles.createButton,
-              pressed && globalStyles.buttonPressed
-            ]}
+          <Button
+            variant="primary"
             onPress={handleCreateSprint}
           >
-            <Text style={styles.createButtonText}>Créer le Sprint</Text>
-          </Pressable>
-        </View>
+            Créer le Sprint
+          </Button>
+        </Card>
       </ScrollView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  form: {
-    padding: spacing.md,
-  },
-  formField: {
-    marginBottom: spacing.md,
-  },
-  label: {
-    fontSize: 16,
-    marginBottom: spacing.xs,
-    color: colors.text.primary,
-  },
-  input: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: 8,
-    padding: spacing.sm,
-    color: colors.text.primary,
-    fontSize: 16,
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  error: {
-    color: colors.error,
-    marginBottom: spacing.md,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  backButtonText: {
-    marginLeft: spacing.xs,
-    color: colors.text.primary,
-    fontSize: 16,
-  },
-  createButton: {
-    backgroundColor: colors.primary,
-    padding: spacing.md,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  createButtonText: {
-    color: colors.text.onPrimary,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-});

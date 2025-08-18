@@ -1,8 +1,7 @@
 import axios from 'axios';
 import { User } from '@/types/auth';
 import { authService } from './auth';
-
-const API_URL = 'http://sprintify.mathieugr.fr:3000/api';
+import { API_CONFIG } from '@/config/api';
 
 export const userService = {
   async searchUsers(query: string): Promise<User[]> {
@@ -12,7 +11,7 @@ export const userService = {
         throw new Error('Non authentifié');
       }
 
-      const response = await axios.get<User[]>(`${API_URL}/users/search`, {
+      const response = await axios.get<User[]>(`${API_CONFIG.BASE_URL}/users/search`, {
         params: { q: query },
         headers: {
           Authorization: `Bearer ${token}`,

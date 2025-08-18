@@ -2,8 +2,7 @@ import axios from 'axios';
 import { ProjectDetails, ProjectOverview } from '@/types/project';
 import { authService } from './auth';
 import { User } from '@/types/user';
-
-const API_URL = 'http://sprintify.mathieugr.fr:3000/api';
+import { API_CONFIG } from '@/config/api';
 
 interface CreateProjectData {
   name: string;
@@ -21,7 +20,7 @@ export const projectService = {
         throw new Error('Non authentifié');
       }
 
-      const response = await axios.get<ProjectOverview[]>(`${API_URL}/projects/`, {
+      const response = await axios.get<ProjectOverview[]>(`${API_CONFIG.BASE_URL}/projects/`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -40,7 +39,7 @@ export const projectService = {
         throw new Error('Non authentifié');
       }
 
-      const response = await axios.post<ProjectOverview>(`${API_URL}/projects/`, data, {
+      const response = await axios.post<ProjectOverview>(`${API_CONFIG.BASE_URL}/projects/`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -59,7 +58,7 @@ export const projectService = {
         throw new Error('Non authentifié');
       }
 
-      const response = await axios.get<ProjectDetails>(`${API_URL}/projects/${encodeURIComponent(projectName)}`, {
+      const response = await axios.get<ProjectDetails>(`${API_CONFIG.BASE_URL}/projects/${encodeURIComponent(projectName)}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -79,7 +78,7 @@ export const projectService = {
       if (!token) throw new Error('Non authentifié');
 
       await axios.delete(
-        `${API_URL}/projects/delete/${encodeURIComponent(projectName)}`,
+        `${API_CONFIG.BASE_URL}/projects/delete/${encodeURIComponent(projectName)}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
     } catch (error) {

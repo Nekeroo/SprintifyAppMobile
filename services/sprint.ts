@@ -1,6 +1,7 @@
 import { Stat } from "@/types/stat";
 import { SprintOverview } from "../types/sprint";
 import { Task, TasksByStatus } from "../types/task";
+import { API_CONFIG } from '@/config/api';
 
 interface CreateSprintData {
   name: string;
@@ -26,7 +27,6 @@ interface CreateTaskData {
   assignee: string;
 }
 
-const API_URL = 'http://sprintify.mathieugr.fr:3000/api';
 
 const formatDateForApi = (date: string): string => {
   const [year, month, day] = date.split('T')[0].split('-');
@@ -35,7 +35,7 @@ const formatDateForApi = (date: string): string => {
 
 export const sprintService = {
   getSprints: async (projectName: string): Promise<SprintOverview[]> => {
-    const response = await fetch(`${API_URL}/sprints/${encodeURIComponent(projectName)}`);
+    const response = await fetch(`${API_CONFIG.BASE_URL}/sprints/${encodeURIComponent(projectName)}`);
     
     if (!response.ok) {
       throw new Error('Erreur lors de la récupération des sprints');
@@ -45,7 +45,7 @@ export const sprintService = {
   },
 
   createSprint: async (projectName: string, data: CreateSprintData): Promise<Response> => {
-    const response = await fetch(`${API_URL}/sprints/${encodeURIComponent(projectName)}/add`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/sprints/${encodeURIComponent(projectName)}/add`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -77,7 +77,7 @@ export const sprintService = {
    
 
   deleteSprint: async (sprintName: string): Promise<Response> => {
-    const response = await fetch(`${API_URL}/sprints/delete/${encodeURIComponent(sprintName)}`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/sprints/delete/${encodeURIComponent(sprintName)}`, {
       method: 'DELETE',
     });
 
@@ -89,7 +89,7 @@ export const sprintService = {
   },
 
   statSprint: async (sprintName: string) : Promise<Stat> => {
-    const response = await fetch(`${API_URL}/sprints/${encodeURIComponent(sprintName)}/stats`);
+    const response = await fetch(`${API_CONFIG.BASE_URL}/sprints/${encodeURIComponent(sprintName)}/stats`);
     
     if (!response.ok) {
       throw new Error('Erreur lors de la récupération des stats');

@@ -1,9 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LoginCredentials, RegisterCredentials, AuthResponse, User } from '../types/auth';
-
-
-const API_URL = 'http://sprintify.mathieugr.fr:3000/api';
+import { API_CONFIG } from '@/config/api';
 const TOKEN_KEY = '@auth_token';
 
 axios.interceptors.request.use(
@@ -32,7 +30,7 @@ axios.interceptors.response.use(
 export const authService = {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
-      const response = await axios.post<AuthResponse>(`${API_URL}/auth/login`, credentials);
+      const response = await axios.post<AuthResponse>(`${API_CONFIG.BASE_URL}/auth/login`, credentials);
       await AsyncStorage.setItem(TOKEN_KEY, response.data.token);
       return response.data;
     } catch (error) {
@@ -43,7 +41,7 @@ export const authService = {
 
   async register(credentials: RegisterCredentials): Promise<AuthResponse> {
     try {
-      const response = await axios.post<AuthResponse>(`${API_URL}/auth/register`, credentials, {
+      const response = await axios.post<AuthResponse>(`${API_CONFIG.BASE_URL}/auth/register`, credentials, {
         headers: {
           'Content-Type': 'application/json',
         }
@@ -86,7 +84,7 @@ export const authService = {
 
   async getMe(): Promise<User> {
     try {
-      const response = await axios.get(`${API_URL}/auth/me`, {
+      const response = await axios.get(`${API_CONFIG.BASE_URL}/auth/me`, {
         headers: {
           Authorization: `Bearer ${await this.getToken()}`,
         },

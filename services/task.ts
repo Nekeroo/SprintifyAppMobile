@@ -1,10 +1,9 @@
 import { Task } from '@/types/task';
-
-const API_URL = 'http://sprintify.mathieugr.fr:3000/api';
+import { API_CONFIG } from '@/config/api';
 
 export const taskService = {
   async getTasks(sprintName: string): Promise<Task[]> {
-    const response = await fetch(`${API_URL}/tasks/${encodeURIComponent(sprintName)}`);
+    const response = await fetch(`${API_CONFIG.BASE_URL}/tasks/${encodeURIComponent(sprintName)}`);
     if (!response.ok) {
       throw new Error('Erreur lors de la récupération des tâches');
     }
@@ -12,7 +11,7 @@ export const taskService = {
   },
 
   async createTask(sprintName: string, task: Omit<Task, 'id'>): Promise<void> {
-    const response = await fetch(`${API_URL}/tasks/create/${encodeURIComponent(sprintName)}`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/tasks/create/${encodeURIComponent(sprintName)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(task),
@@ -23,7 +22,7 @@ export const taskService = {
   },
 
   async updateTask(taskTitle: string, task: Partial<Task>): Promise<void> {
-    const response = await fetch(`${API_URL}/tasks/update/${encodeURIComponent(taskTitle)}`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/tasks/update/${encodeURIComponent(taskTitle)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(task),
@@ -34,7 +33,7 @@ export const taskService = {
   },
 
   async deleteTask(taskTitle: string): Promise<void> {
-    const response = await fetch(`${API_URL}/tasks/delete/${encodeURIComponent(taskTitle)}`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/tasks/delete/${encodeURIComponent(taskTitle)}`, {
       method: 'DELETE',
     });
     if (!response.ok) {

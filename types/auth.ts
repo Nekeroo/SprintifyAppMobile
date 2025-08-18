@@ -1,7 +1,7 @@
 export interface User {
   username: string;
   email: string;
-  roleName : string;
+  roleName?: string;
 }
 
 export interface LoginCredentials {
