@@ -14,32 +14,77 @@ function AuthScreen() {
     password: '',
     confirmPassword: '',
   });
+  const [errors, setErrors] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
 
   const dispatch = useAppDispatch();
-  const { status } = useAppSelector((state) => state.auth);
+  const { status, error } = useAppSelector((state) => state.auth);
+
+  const validateField = (field: string, value: string) => {
+    switch (field) {
+      case 'username':
+        if (!value.trim()) {
+          return "Le nom d'utilisateur est requis";
+        }
+        if (value.length > 50) {
+          return "Le nom d'utilisateur ne doit pas dépasser 50 caractères";
+        }
+        return '';
+      case 'email':
+        if (!value.trim()) {
+          return "L'email est requis";
+        }
+        if (value.length > 50) {
+          return "L'email ne doit pas dépasser 50 caractères";
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) {
+          return "L'email n'est pas valide";
+        }
+        return '';
+      case 'password':
+        if (!value.trim()) {
+          return "Le mot de passe est requis";
+        }
+        return '';
+      case 'confirmPassword':
+        if (!value.trim()) {
+          return "La confirmation du mot de passe est requise";
+        }
+        if (value !== credentials.password) {
+          return "Les mots de passe ne correspondent pas";
+        }
+        return '';
+    }
+    return '';
+  };
+
+  const handleFieldChange = (field: string, value: string) => {
+    setCredentials(prev => ({ ...prev, [field]: value }));
+    const error = validateField(field, value);
+    if (field === 'password') {
+      // Revalidate confirmPassword when password changes
+      const confirmError = validateField('confirmPassword', credentials.confirmPassword);
+      setErrors(prev => ({ ...prev, [field]: error, confirmPassword: confirmError }));
+    } else {
+      setErrors(prev => ({ ...prev, [field]: error }));
+    }
+  };
 
   const validateForm = () => {
-    if (!credentials.username.trim() || !credentials.password.trim()) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs requis');
-      return false;
-    }
+    const newErrors = {
+      username: validateField('username', credentials.username),
+      email: !isLogin ? validateField('email', credentials.email) : '',
+      password: validateField('password', credentials.password),
+      confirmPassword: !isLogin ? validateField('confirmPassword', credentials.confirmPassword) : '',
+    };
 
-    if (!isLogin) {
-      if (!credentials.email.trim()) {
-        Alert.alert('Erreur', "L'email est requis");
-        return false;
-      }
-      if (credentials.password !== credentials.confirmPassword) {
-        Alert.alert('Erreur', 'Les mots de passe ne correspondent pas');
-        return false;
-      }
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(credentials.email)) {
-        Alert.alert('Erreur', "L'email n'est pas valide");
-        return false;
-      }
-    }
-    return true;
+    setErrors(newErrors);
+    return !Object.values(newErrors).some(error => error !== '');
   };
 
   const handleSubmit = async () => {
@@ -53,7 +98,7 @@ function AuthScreen() {
         if (login.fulfilled.match(resultAction)) {
           router.replace('/(tabs)/projects');
         } else {
-          Alert.alert('Erreur', 'Identifiants incorrects ou problème de connexion');
+          Alert.alert('Erreur', error || 'Identifiants incorrects ou problème de connexion');
         }
       } else {
         const resultAction = await dispatch(
@@ -66,7 +111,7 @@ function AuthScreen() {
         if (register.fulfilled.match(resultAction)) {
           router.replace('/(tabs)/projects');
         } else {
-          Alert.alert("Erreur", "L'inscription a échoué. Veuillez réessayer.");
+          Alert.alert('Erreur', error || "L'inscription a échoué. Veuillez réessayer.");
         }
       }
     } catch (error) {
@@ -76,8 +121,19 @@ function AuthScreen() {
   };
 
   const toggleMode = () => {
-    setIsLogin(!isLogin);
-    setCredentials({
+    const newIsLogin = !isLogin;
+    setIsLogin(newIsLogin);
+    
+    if (newIsLogin) {
+      setCredentials({
+        username: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+      });
+    }
+    
+    setErrors({
       username: '',
       email: '',
       password: '',
@@ -96,55 +152,67 @@ function AuthScreen() {
           {isLogin ? 'Connectez-vous pour continuer' : 'Créez votre compte'}
         </Text>
 
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorMessage}>Une erreur à été rencontrée. Veuillez reessayer.</Text>
+          </View>
+        )}
+
         <View style={styles.form}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Nom d'utilisateur</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.username ? styles.inputError : null]}
               value={credentials.username}
-              onChangeText={(text) => setCredentials(prev => ({ ...prev, username: text }))}
+              onChangeText={(text) => handleFieldChange('username', text)}
               placeholder="Entrez votre nom d'utilisateur"
               autoCapitalize="none"
               autoCorrect={false}
+              maxLength={50}
             />
+            {errors.username ? <Text style={styles.errorText}>{errors.username}</Text> : null}
           </View>
 
           {!isLogin && (
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Email</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, errors.email ? styles.inputError : null]}
                 value={credentials.email}
-                onChangeText={(text) => setCredentials(prev => ({ ...prev, email: text }))}
+                onChangeText={(text) => handleFieldChange('email', text)}
                 placeholder="Entrez votre email"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                maxLength={50}
               />
+              {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
             </View>
           )}
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Mot de passe</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.password ? styles.inputError : null]}
               value={credentials.password}
-              onChangeText={(text) => setCredentials(prev => ({ ...prev, password: text }))}
+              onChangeText={(text) => handleFieldChange('password', text)}
               placeholder={isLogin ? "Entrez votre mot de passe" : "Choisissez un mot de passe"}
               secureTextEntry
             />
+            {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
           </View>
 
           {!isLogin && (
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Confirmer le mot de passe</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, errors.confirmPassword ? styles.inputError : null]}
                 value={credentials.confirmPassword}
-                onChangeText={(text) => setCredentials(prev => ({ ...prev, confirmPassword: text }))}
+                onChangeText={(text) => handleFieldChange('confirmPassword', text)}
                 placeholder="Confirmez votre mot de passe"
                 secureTextEntry
               />
+              {errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
             </View>
           )}
 
@@ -186,13 +254,41 @@ const styles = StyleSheet.create({
   form: { gap: 16 },
   inputContainer: { gap: 8 },
   label: { fontSize: 16, fontWeight: '500' },
-  input: { backgroundColor: '#f8f9fa', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, fontSize: 16 },
+  input: { 
+    backgroundColor: '#f8f9fa', 
+    borderWidth: 1, 
+    borderColor: '#ddd', 
+    borderRadius: 8, 
+    padding: 12, 
+    fontSize: 16 
+  },
+  inputError: {
+    borderColor: '#dc3545',
+  },
+  errorText: {
+    color: '#dc3545',
+    fontSize: 12,
+    marginTop: 4,
+  },
   button: { backgroundColor: '#007AFF', padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 8 },
   buttonDisabled: { opacity: 0.7 },
   buttonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
   toggleContainer: { flexDirection: 'row', justifyContent: 'center', gap: 4, marginTop: 16 },
   toggleText: { fontSize: 14 },
   toggleLink: { fontSize: 14, color: '#007AFF', fontWeight: '500' },
+  errorContainer: {
+    backgroundColor: '#ffebee',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#dc3545',
+  },
+  errorMessage: {
+    color: '#dc3545',
+    fontSize: 14,
+    textAlign: 'center',
+  },
 });
 
 export default AuthScreen;

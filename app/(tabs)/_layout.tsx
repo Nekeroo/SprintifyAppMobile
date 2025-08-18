@@ -39,7 +39,6 @@ export default function TabLayout() {
 
   {/* Fichiers à masquer dans (tabs) */}
   <Tabs.Screen name="index" options={{ href: null }} />
-  <Tabs.Screen name="two" options={{ href: null }} />
   <Tabs.Screen name="create-sprint" options={{ href: null }} />
 
   {/* Tes écrans déjà masqués */}

@@ -83,9 +83,17 @@ const authSlice = createSlice({
         state.error = action.payload as string;
       })
       // register
+      .addCase(register.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
       .addCase(register.fulfilled, (state, action) => {
         state.user = action.payload;
         state.status = 'succeeded';
+      })
+      .addCase(register.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string;
       })
       // logout
       .addCase(logout.fulfilled, (state) => {
