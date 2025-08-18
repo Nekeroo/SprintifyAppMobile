@@ -64,7 +64,7 @@ function AuthScreen() {
           })
         );
         if (register.fulfilled.match(resultAction)) {
-          router.replace('/(tabs)');
+          router.replace('/(tabs)/projects');
         } else {
           Alert.alert("Erreur", "L'inscription a échoué. Veuillez réessayer.");
         }
