@@ -4,6 +4,11 @@ Ce projet est l'application frontend de l'application Sprintify. Celle-ci permet
 
 https://github.com/Nekeroo/Sprintify
 
+## Dernière version stable (LTS)
+
+La dernière version stable est la version 1.7.1.
+https://github.com/Nekeroo/SprintifyAppMobile/tree/1.7.1
+
 ## Prérequis 
 
 - Node (version utilisée : [v22.18.0](https://nodejs.org/en/blog/release/v22.18.0))
