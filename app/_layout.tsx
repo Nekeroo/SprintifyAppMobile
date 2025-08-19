@@ -20,7 +20,7 @@ import { Provider } from "react-redux";
 export { ErrorBoundary } from "expo-router";
 
 export const unstable_settings = {
-  initialRouteName: "(tabs)",
+  initialRouteName: "(auth)",
 };
 
 SplashScreen.preventAutoHideAsync();
@@ -40,10 +40,10 @@ const useProtectedRoute = () => {
     if (status === "loading") return;
 
     const isAuthed = !!user;
-    const inAuthGroup = segments[0] === "auth";
+    const inAuthGroup = segments[0] === "(auth)";
 
     if (!isAuthed && !inAuthGroup) {
-      router.replace("/auth");
+      router.replace("/(auth)");
     } else if (isAuthed && inAuthGroup) {
       router.replace("/(tabs)");
     }
@@ -86,12 +86,11 @@ function ProtectedApp({ colorScheme }: { colorScheme: string }) {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: true }} />
-          <Stack.Screen name="auth/index" />
         </Stack>
       </ThemeProvider>
     </GestureHandlerRootView>
   );
 }
-

@@ -74,7 +74,7 @@ export default function CreateProjectScreen() {
       });
 
       // Retourner à la liste des projets et forcer un rafraîchissement
-      router.replace('/(tabs)');
+      router.replace('/(tabs)/projects');
     } catch (err) {
       setError('Erreur lors de la création du projet');
       console.error(err);
