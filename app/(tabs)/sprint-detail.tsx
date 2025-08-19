@@ -13,7 +13,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import { globalStyles, colors, spacing } from "@/styles/theme";
 import { FontAwesome } from "@expo/vector-icons";
 import { useAppDispatch, useAppSelector } from "@/store";
-import { getSprints, getSprintStats } from "@/store/sprintSlice";
+import { getSprintStats } from "@/store/sprintSlice";
+import { getProjectDetails } from "@/store/projectSlice";
 import {
   getTasks,
   updateTask,
@@ -27,6 +28,12 @@ import CreateTaskModal from "@/components/CreateTaskModal";
 export default function SprintDetailScreen() {
   const { sprintName, projectName } = useLocalSearchParams();
   const dispatch = useAppDispatch();
+
+  const projectState = useAppSelector(
+    (state) => state.project)
+    
+  const isLoadingProject = projectState?.status === "loading";
+  const projectError = projectState?.error;
 
   const sprintState = useAppSelector(
     (state) => state.sprint.byProject[projectName as string]
@@ -72,7 +79,7 @@ export default function SprintDetailScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (projectName) dispatch(getSprints(projectName as string));
+      if (projectName) dispatch(getProjectDetails(projectName as string));
       if (sprintName) dispatch(getTasks(sprintName as string));
     }, [dispatch, projectName, sprintName])
   );
@@ -202,9 +209,9 @@ export default function SprintDetailScreen() {
   return (
     <View style={styles.container}>
       <HeaderSection />
-      {isLoadingSprints || isLoadingTasks ? (
+      {isLoadingProject || isLoadingSprints || isLoadingTasks ? (
         <LoadingSection />
-      ) : sprintError || tasksError ? (
+      ) : projectError || sprintError || tasksError ? (
         <ErrorSection />
       ) : (
         <ScrollView horizontal contentContainerStyle={styles.columns}>
@@ -261,14 +268,14 @@ export default function SprintDetailScreen() {
   function ErrorSection() {
     return (
       <View style={globalStyles.errorContainer}>
-        <Text style={globalStyles.errorText}>{sprintError || tasksError}</Text>
+        <Text style={globalStyles.errorText}>{projectError || sprintError || tasksError}</Text>
         <Pressable
           style={({ pressed }) => [
             globalStyles.button,
             pressed && globalStyles.buttonPressed,
           ]}
           onPress={() => {
-            if (projectName) dispatch(getSprints(projectName as string));
+            if (projectName) dispatch(getProjectDetails(projectName as string));
             if (sprintName) dispatch(getTasks(sprintName as string));
           }}
         >

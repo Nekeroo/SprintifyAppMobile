@@ -34,15 +34,6 @@ const formatDateForApi = (date: string): string => {
 };
 
 export const sprintService = {
-  getSprints: async (projectName: string): Promise<SprintOverview[]> => {
-    const response = await fetch(`${API_CONFIG.BASE_URL}/sprints/${encodeURIComponent(projectName)}`);
-    
-    if (!response.ok) {
-      throw new Error('Erreur lors de la récupération des sprints');
-    }
-
-    return response.json();
-  },
 
   createSprint: async (projectName: string, data: CreateSprintData): Promise<Response> => {
     const response = await fetch(`${API_CONFIG.BASE_URL}/sprints/${encodeURIComponent(projectName)}/add`, {

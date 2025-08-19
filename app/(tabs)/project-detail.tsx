@@ -27,7 +27,6 @@ export default function ProjectDetailScreen() {
   useEffect(() => {
     if (project) {
       dispatch(getProjectDetails(project as string));
-      dispatch(getSprints(project as string));
     }
   }, [dispatch, project, reload]);
 
