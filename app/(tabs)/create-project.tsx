@@ -59,8 +59,26 @@ export default function CreateProjectScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!name.trim() || !description.trim() || !selectedUser) {
-      setError('Le nom, la description et le propriétaire sont requis');
+    const validationErrors = [];
+
+    if (!name.trim()) {
+      validationErrors.push('Le nom du projet est requis');
+    } else if (name.length > MAX_NAME_LENGTH) {
+      validationErrors.push(`Le nom ne doit pas dépasser ${MAX_NAME_LENGTH} caractères`);
+    }
+
+    if (!description.trim()) {
+      validationErrors.push('La description est requise');
+    } else if (description.length > MAX_DESCRIPTION_LENGTH) {
+      validationErrors.push(`La description ne doit pas dépasser ${MAX_DESCRIPTION_LENGTH} caractères`);
+    }
+
+    if (!selectedUser) {
+      validationErrors.push('Le propriétaire est requis');
+    }
+
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join('\n'));
       return;
     }
 
@@ -136,7 +154,7 @@ export default function CreateProjectScreen() {
 
             <View style={styles.userSearchContainer}>
               <Text style={[globalStyles.subtitle, styles.sectionTitle]}>
-                Propriétaire du projet
+                Propriétaire du projet <Text style={styles.required}>*</Text>
               </Text>
               {selectedUser ? (
                   <View style={styles.selectedUserContainer}>
@@ -190,6 +208,7 @@ export default function CreateProjectScreen() {
                   </>
               )}
             </View>
+            
           </View>
 
           <View style={styles.buttonContainer}>
@@ -282,5 +301,8 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
     maxWidth: 500,
+  },
+  required: {
+    color: colors.error,
   },
 });
