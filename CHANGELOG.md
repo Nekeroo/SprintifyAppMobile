@@ -1,4 +1,32 @@
 
+<a name="v1.8.0"></a>
+## [v1.8.0](https://github.com/Nekeroo/SprintifyAppMobile/compare/1.7.1...v1.8.0)
+
+> 2025-08-20
+
+### Chore
+
+* ajout lts
+* ajout README.md
+* undo commit
+* modification URL + centralisation dans une config
+* update changelog
+
+### Fix
+
+* remove log inutile
+* creation layout dans (auth)
+* route dans (auth)
+* messages erreurs creation task
+* création task
+* index auth
+* changement lié à la création de sprint
+* appel getSprints au bon endroit$
+* redirection lancement app + redirection création projets
+* modification authentification
+* redirection enregistrement vers la liste des projets
+
+
 <a name="1.7.1"></a>
 ## [1.7.1](https://github.com/Nekeroo/SprintifyAppMobile/compare/v1.7.0...1.7.1)
 
