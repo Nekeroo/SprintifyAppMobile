@@ -1,9 +1,16 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, ScrollView, Pressable, TextInput } from 'react-native';
-import { Text } from '@/components/Themed';
+import React, { useState, useRef } from 'react';
+import { 
+  StyleSheet, 
+  View, 
+  Text, 
+  TextInput, 
+  Pressable, 
+  ScrollView, 
+  KeyboardAvoidingView, 
+  Platform 
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { globalStyles, colors, spacing } from '@/styles/theme';
-import { FontAwesome } from '@expo/vector-icons';
 import { displayDateToApi, formatDate, isValidDate } from '@/services/dateUtils';
 import { useAppDispatch } from '@/store';
 import { createSprint } from '@/store/sprintSlice';
@@ -15,6 +22,8 @@ export default function CreateSprintScreen() {
   const { project } = useLocalSearchParams();
   const router = useRouter();
   const dispatch = useAppDispatch();
+
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -87,103 +96,107 @@ export default function CreateSprintScreen() {
     }
   };
 
+  const scrollToInput = (y: number) => {
+    scrollViewRef.current?.scrollTo({ y: y, animated: true });
+  };
+
   return (
-      <View style={globalStyles.container}>
-        <Pressable
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={globalStyles.container}
+    >
+      <ScrollView 
+        ref={scrollViewRef}
+        style={globalStyles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={[globalStyles.card, styles.form]}>
+          <Text style={globalStyles.title}>Nouveau Sprint</Text>
+
+          <View style={styles.formField}>
+            <Text style={styles.label}>Nom <Text style={styles.required}>*</Text></Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={[styles.input, styles.inputWithCounter]}
+                value={name}
+                onChangeText={handleNameChange}
+                placeholder="Nom du sprint"
+                placeholderTextColor={colors.text.secondary}
+                onFocus={() => scrollToInput(0)}
+              />
+              <Text style={[
+                styles.charCount,
+                name.length === MAX_NAME_LENGTH && styles.charCountLimit
+              ]}>
+                {name.length}/{MAX_NAME_LENGTH}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.formField}>
+            <Text style={styles.label}>Description <Text style={styles.required}>*</Text></Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={[styles.input, styles.textArea, styles.inputWithCounter]}
+                value={description}
+                onChangeText={handleDescriptionChange}
+                placeholder="Description du sprint"
+                placeholderTextColor={colors.text.secondary}
+                multiline
+                numberOfLines={4}
+                onFocus={() => scrollToInput(100)}
+              />
+              <Text style={[
+                styles.charCount,
+                description.length === MAX_DESCRIPTION_LENGTH && styles.charCountLimit
+              ]}>
+                {description.length}/{MAX_DESCRIPTION_LENGTH}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.formField}>
+            <Text style={styles.label}>Date de début (JJ/MM/AAAA) <Text style={styles.required}>*</Text></Text>
+            <TextInput
+              style={[styles.input, !isValidDate(startDate) && startDate.length > 0 && styles.inputError]}
+              value={startDate}
+              onChangeText={(text) => setStartDate(formatDate(text))}
+              placeholder="JJ/MM/AAAA"
+              placeholderTextColor={colors.text.secondary}
+              keyboardType="numeric"
+              maxLength={10}
+              onFocus={() => scrollToInput(200)}
+            />
+          </View>
+
+          <View style={styles.formField}>
+            <Text style={styles.label}>Date de fin (JJ/MM/AAAA) <Text style={styles.required}>*</Text></Text>
+            <TextInput
+              style={[styles.input, !isValidDate(endDate) && endDate.length > 0 && styles.inputError]}
+              value={endDate}
+              onChangeText={(text) => setEndDate(formatDate(text))}
+              placeholder="JJ/MM/AAAA"
+              placeholderTextColor={colors.text.secondary}
+              keyboardType="numeric"
+              maxLength={10}
+              onFocus={() => scrollToInput(300)}
+            />
+          </View>
+
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+
+          <Pressable
             style={({pressed}) => [
-              styles.backButton,
+              styles.createButton,
               pressed && globalStyles.buttonPressed
             ]}
-            onPress={() => router.back()}
-        >
-          <FontAwesome name="arrow-left" size={20} color={colors.text.primary} />
-          <Text style={styles.backButtonText}>Retour</Text>
-        </Pressable>
-
-        <ScrollView style={globalStyles.container}>
-          <View style={[globalStyles.card, styles.form]}>
-            <Text style={globalStyles.title}>Nouveau Sprint</Text>
-
-            <View style={styles.formField}>
-              <Text style={styles.label}>Nom <Text style={styles.required}>*</Text></Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                    style={[styles.input, styles.inputWithCounter]}
-                    value={name}
-                    onChangeText={handleNameChange}
-                    placeholder="Nom du sprint"
-                    placeholderTextColor={colors.text.secondary}
-                />
-                <Text style={[
-                  styles.charCount,
-                  name.length === MAX_NAME_LENGTH && styles.charCountLimit
-                ]}>
-                  {name.length}/{MAX_NAME_LENGTH}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.formField}>
-              <Text style={styles.label}>Description <Text style={styles.required}>*</Text></Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                    style={[styles.input, styles.textArea, styles.inputWithCounter]}
-                    value={description}
-                    onChangeText={handleDescriptionChange}
-                    placeholder="Description du sprint"
-                    placeholderTextColor={colors.text.secondary}
-                    multiline
-                    numberOfLines={4}
-                />
-                <Text style={[
-                  styles.charCount,
-                  description.length === MAX_DESCRIPTION_LENGTH && styles.charCountLimit
-                ]}>
-                  {description.length}/{MAX_DESCRIPTION_LENGTH}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.formField}>
-              <Text style={styles.label}>Date de début (JJ/MM/AAAA) <Text style={styles.required}>*</Text></Text>
-              <TextInput
-                  style={[styles.input, !isValidDate(startDate) && startDate.length > 0 && styles.inputError]}
-                  value={startDate}
-                  onChangeText={(text) => setStartDate(formatDate(text))}
-                  placeholder="JJ/MM/AAAA"
-                  placeholderTextColor={colors.text.secondary}
-                  keyboardType="numeric"
-                  maxLength={10}
-              />
-            </View>
-
-            <View style={styles.formField}>
-              <Text style={styles.label}>Date de fin (JJ/MM/AAAA) <Text style={styles.required}>*</Text></Text>
-              <TextInput
-                  style={[styles.input, !isValidDate(endDate) && endDate.length > 0 && styles.inputError]}
-                  value={endDate}
-                  onChangeText={(text) => setEndDate(formatDate(text))}
-                  placeholder="JJ/MM/AAAA"
-                  placeholderTextColor={colors.text.secondary}
-                  keyboardType="numeric"
-                  maxLength={10}
-              />
-            </View>
-
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-
-            <Pressable
-                style={({pressed}) => [
-                  styles.createButton,
-                  pressed && globalStyles.buttonPressed
-                ]}
-                onPress={handleCreateSprint}
-            >
-              <Text style={styles.createButtonText}>Créer le Sprint</Text>
-            </Pressable>
-          </View>
-        </ScrollView>
-      </View>
+            onPress={handleCreateSprint}
+          >
+            <Text style={styles.createButtonText}>Créer le Sprint</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

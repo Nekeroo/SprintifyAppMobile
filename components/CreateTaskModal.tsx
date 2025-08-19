@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   ScrollView,
   Pressable,
-  ActivityIndicator,
   Modal,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
-import { Task } from '@/types/task';
+import {
+  TaskCreationPayload
+} from '@/types/task';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, globalStyles } from '@/styles/theme';
 import {
@@ -22,12 +25,14 @@ import {
 import { User } from '@/types/auth';
 import { userService } from '@/services/user';
 
+const MAX_TITLE_LENGTH = 50;
+const MAX_DESCRIPTION_LENGTH = 500;
+
 interface CreateTaskModalProps {
   visible: boolean;
   onClose: () => void;
-  onCreate: (newTask: Omit<Task, 'id'>) => Promise<void>;
+  onCreate: (newTask: TaskCreationPayload) => Promise<void>;
   isCreating: boolean;
-  createError: string;
   sprintName: string;
 }
 
@@ -36,16 +41,14 @@ const CreateTaskModal = ({
   onClose,
   onCreate,
   isCreating,
-  createError,
   sprintName,
 }: CreateTaskModalProps) => {
-  const [newTask, setNewTask] = useState<Omit<Task, 'id'>>({
-    title: '',
+  const [newTask, setNewTask] = useState<TaskCreationPayload>({
+    name: '',
     description: '',
-    status: 'TODO',
     dueDate: '',
-    usernameAssignee: '',
     storyPoints: 1,
+    assignee: ''
   });
 
   const [showDueDatePicker, setShowDueDatePicker] = useState(false);
@@ -54,6 +57,15 @@ const CreateTaskModal = ({
   const [selectedAssignee, setSelectedAssignee] = useState<User | null>(null);
   const [assigneeSearch, setAssigneeSearch] = useState('');
   const [assigneeSuggestions, setAssigneeSuggestions] = useState<User[]>([]);
+
+  const [error, setError] = useState('');
+
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Fonction pour scroller vers un élément
+  const scrollToInput = (y: number) => {
+    scrollViewRef.current?.scrollTo({ y: y, animated: true });
+  };
 
   // Recherche des assignés avec debounce
   useEffect(() => {
@@ -77,7 +89,7 @@ const CreateTaskModal = ({
 
   const handleSelectAssignee = (user: User) => {
     setSelectedAssignee(user);
-    setNewTask({ ...newTask, usernameAssignee: user.username });
+    setNewTask({ ...newTask, assignee: user.username });
     setAssigneeSearch('');
     setAssigneeSuggestions([]);
   };
@@ -86,12 +98,11 @@ const CreateTaskModal = ({
   useEffect(() => {
     if (!visible) {
       setNewTask({
-        title: '',
+        name: '',
         description: '',
-        status: 'TODO',
         dueDate: '',
-        usernameAssignee: '',
         storyPoints: 1,
+        assignee: ''
       });
       setSelectedAssignee(null);
       setAssigneeSearch('');
@@ -99,8 +110,53 @@ const CreateTaskModal = ({
     }
   }, [visible]);
 
+  const handleTitleChange = (text: string) => {
+    if (text.length <= MAX_TITLE_LENGTH) {
+      setNewTask({ ...newTask, name: text });
+    }
+  };
+
+  const handleDescriptionChange = (text: string) => {
+    if (text.length <= MAX_DESCRIPTION_LENGTH) {
+      setNewTask({ ...newTask, description: text });
+    }
+  };
+
   const handleCreate = async () => {
-    await onCreate(newTask);
+    // Validation des champs requis
+    if (!newTask.name.trim()) {
+      setError('Le titre est requis');
+      return;
+    }
+
+    if (newTask.storyPoints < 0) {
+      setError('Les points de story doivent être positifs');
+      return;
+    }
+
+    if (!newTask.dueDate) {
+      setError('La date d\'échéance est requise');
+      return;
+    }
+
+    if (newTask.name.length > MAX_TITLE_LENGTH) {
+      setError('Le titre ne doit pas dépasser 50 caractères');
+      return;
+    }
+
+    if (newTask.description.length > MAX_DESCRIPTION_LENGTH) {
+      setError('La description ne doit pas dépasser 500 caractères');
+      return;
+    }
+
+    try {
+      await onCreate({
+        ...newTask,
+        assignee: selectedAssignee?.username || ''
+      });
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors de la création de la tâche');
+    }
   };
 
   return (
@@ -111,7 +167,10 @@ const CreateTaskModal = ({
       onRequestClose={onClose}
       presentationStyle="pageSheet"
     >
-      <View style={styles.modalContainer}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" || Platform.OS === "android" ? "padding" : "height"}
+        style={styles.modalContainer}
+      >
         <View style={styles.modalView}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Nouvelle tâche</Text>
@@ -126,7 +185,11 @@ const CreateTaskModal = ({
             </Pressable>
           </View>
 
-          <ScrollView style={styles.modalContent}>
+          <ScrollView 
+            ref={scrollViewRef}
+            style={styles.modalContent}
+            keyboardShouldPersistTaps="handled"
+          >
             {/* Sprint */}
             <Text style={styles.inputLabel}>Sprint</Text>
             <View style={styles.sprintIndicator}>
@@ -134,39 +197,56 @@ const CreateTaskModal = ({
             </View>
 
             {/* Titre */}
-            <Text style={styles.inputLabel}>Titre *</Text>
-            <TextInput
-              style={styles.input}
-              value={newTask.title}
-              onChangeText={(text) => setNewTask({ ...newTask, title: text })}
-              placeholder="Titre de la tâche"
-            />
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Titre <Text style={styles.required}>*</Text></Text>
+              <TextInput
+                style={[styles.input, styles.inputWithCounter]}
+                value={newTask.name}
+                onChangeText={handleTitleChange}
+                placeholder="Titre de la tâche"
+                placeholderTextColor={colors.text.secondary}
+                onFocus={() => scrollToInput(0)}
+              />
+              <Text style={[
+                styles.charCount,
+                newTask.name.length > MAX_TITLE_LENGTH && styles.charCountLimit
+              ]}>
+                {newTask.name.length}/{MAX_TITLE_LENGTH}
+              </Text>
+            </View>
 
             {/* Description */}
-            <Text style={styles.inputLabel}>Description</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={newTask.description}
-              onChangeText={(text) => setNewTask({ ...newTask, description: text })}
-              placeholder="Description de la tâche"
-              multiline
-              numberOfLines={4}
-            />
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Description</Text>
+              <TextInput
+                style={[styles.input, styles.textArea, styles.inputWithCounter]}
+                value={newTask.description}
+                onChangeText={handleDescriptionChange}
+                placeholder="Description de la tâche"
+                placeholderTextColor={colors.text.secondary}
+                multiline
+                numberOfLines={4}
+                onFocus={() => scrollToInput(100)}
+              />
+              <Text style={[
+                styles.charCount,
+                newTask.description.length > MAX_DESCRIPTION_LENGTH && styles.charCountLimit
+              ]}>
+                {newTask.description.length}/{MAX_DESCRIPTION_LENGTH}
+              </Text>
+            </View>
 
             {/* Assigné à */}
             <Text style={styles.inputLabel}>Assigné à</Text>
             {selectedAssignee ? (
               <View style={styles.selectedUserContainer}>
                 <View style={styles.selectedUserInfo}>
-                  <Text style={globalStyles.textBody}>{selectedAssignee.username}</Text>
-                  {selectedAssignee.email && (
-                    <Text style={globalStyles.textTertiary}>{selectedAssignee.email}</Text>
-                  )}
+                  <Text>{selectedAssignee.username}</Text>
                 </View>
                 <Pressable
                   onPress={() => {
                     setSelectedAssignee(null);
-                    setNewTask({ ...newTask, usernameAssignee: '' });
+                    setNewTask({ ...newTask, assignee: '' });
                   }}
                   style={({ pressed }) => [
                     styles.clearButton,
@@ -179,11 +259,13 @@ const CreateTaskModal = ({
             ) : (
               <>
                 <TextInput
-                  style={globalStyles.input}
-                  placeholder="Rechercher un utilisateur"
+                  style={styles.input}
                   value={assigneeSearch}
                   onChangeText={setAssigneeSearch}
+                  placeholder="Rechercher un utilisateur..."
+                  placeholderTextColor={colors.text.secondary}
                   editable={!isCreating}
+                  onFocus={() => scrollToInput(200)}
                 />
                 {assigneeSuggestions.length > 0 && (
                   <ScrollView
@@ -201,7 +283,7 @@ const CreateTaskModal = ({
                       >
                         <Text style={globalStyles.textBody}>{user.username}</Text>
                         {user.email && (
-                          <Text style={globalStyles.textTertiary}>{user.email}</Text>
+                            <Text style={globalStyles.textTertiary}>{user.email}</Text>
                         )}
                       </Pressable>
                     ))}
@@ -222,6 +304,7 @@ const CreateTaskModal = ({
                     pressed && globalStyles.buttonPressed,
                   ]}
                   onPress={() => setNewTask({ ...newTask, storyPoints: points })}
+                  disabled={isCreating}
                 >
                   <Text
                     style={[
@@ -236,15 +319,14 @@ const CreateTaskModal = ({
             </View>
 
             {/* Date d'échéance */}
-            <Text style={styles.inputLabel}>Date d'échéance</Text>
+            <Text style={styles.inputLabel}>Date d'échéance <Text style={styles.required}>*</Text></Text>
             <Pressable
               style={styles.datePickerButton}
-              onPress={() => setShowDueDatePicker(!showDueDatePicker)}
+              onPress={() => setShowDueDatePicker(true)}
+              disabled={isCreating}
             >
               <Text>
-                {newTask.dueDate
-                  ? isoToDisplayDate(newTask.dueDate)
-                  : 'Aucune date définie'}
+                {newTask.dueDate ? isoToDisplayDate(newTask.dueDate) : "Sélectionner une date"}
               </Text>
               <FontAwesome name="calendar" size={16} color={colors.text.secondary} />
             </Pressable>
@@ -303,42 +385,42 @@ const CreateTaskModal = ({
               </View>
             )}
 
-            {createError ? (
-              <Text style={styles.errorText}>{createError}</Text>
-            ) : null}
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-            <Text style={styles.requiredFieldNote}>* Champ obligatoire</Text>
+            <Text style={styles.requiredFieldNote}>* Champs requis</Text>
+
+            <View style={styles.modalActions}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.cancelButton,
+                  pressed && globalStyles.buttonPressed,
+                ]}
+                onPress={onClose}
+              >
+                <Text style={styles.cancelButtonText}>Annuler</Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.createButton,
+                  (isCreating || !newTask.name.trim() || !newTask.dueDate || newTask.storyPoints < 0) && styles.createButtonDisabled,
+                  pressed && globalStyles.buttonPressed,
+                ]}
+                onPress={handleCreate}
+                disabled={isCreating || !newTask.name.trim() || !newTask.dueDate || newTask.storyPoints < 0}
+              >
+                <Text style={styles.createButtonText}>
+                  {isCreating ? 'Création...' : 'Créer'}
+                </Text>
+              </Pressable>
+            </View>
           </ScrollView>
 
           {/* Footer */}
           <View style={styles.modalFooter}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.cancelButton,
-                pressed && globalStyles.buttonPressed,
-              ]}
-              onPress={onClose}
-            >
-              <Text style={styles.cancelButtonText}>Annuler</Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [
-                styles.createButton,
-                (!newTask.title || isCreating) && styles.createButtonDisabled,
-                pressed && newTask.title && !isCreating && globalStyles.buttonPressed,
-              ]}
-              onPress={handleCreate}
-              disabled={!newTask.title || isCreating}
-            >
-              {isCreating ? (
-                <ActivityIndicator size="small" color={colors.text.primary} />
-              ) : (
-                <Text style={styles.createButtonText}>Créer</Text>
-              )}
-            </Pressable>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -359,12 +441,10 @@ const DateOption = ({ label, onPress }: { label: string; onPress: () => void }) 
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: colors.background.primary,
   },
   modalView: {
     flex: 1,
     backgroundColor: colors.background.primary,
-    overflow: 'hidden',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -557,6 +637,35 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+  },
+  inputContainer: {
+    position: 'relative',
+    marginBottom: spacing.md,
+  },
+  inputWithCounter: {
+    marginBottom: spacing.xs,
+  },
+  charCount: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    textAlign: 'right',
+    position: 'absolute',
+    right: 0,
+    bottom: -20,
+  },
+  charCountLimit: {
+    color: colors.error,
+  },
+  required: {
+    color: colors.error,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.background.primary,
   },
 });
 

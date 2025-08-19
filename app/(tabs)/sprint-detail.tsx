@@ -21,7 +21,7 @@ import {
   createTask,
   deleteTask,
 } from "@/store/taskSlice";
-import { Task, TasksByStatus } from "@/types/task";
+import { Task, TasksByStatus, TaskCreationPayload } from "@/types/task";
 import EditTaskModal from "@/components/EditTaskModal";
 import CreateTaskModal from "@/components/CreateTaskModal";
 
@@ -96,15 +96,16 @@ export default function SprintDetailScreen() {
     }
   };
 
-  const handleCreateTask = async (newTask: Omit<Task, "id">) => {
-    if (!sprintName) return;
+  const handleCreateTask = async (task: TaskCreationPayload) => {
     try {
-      await dispatch(
-        createTask({ sprintName: sprintName as string, data: newTask })
-      ).unwrap();
+      await dispatch(createTask({ 
+        sprintName: sprintName as string,
+        task
+      })).unwrap();
+      await dispatch(getTasks(sprintName as string));
       setCreateTaskModalVisible(false);
-    } catch (error) {
-      console.error("Erreur lors de la création de la tâche:", error);
+    } catch (error: any) {
+      console.error('Error creating task:', error);
     }
   };
 

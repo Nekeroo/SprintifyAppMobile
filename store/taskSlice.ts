@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { taskService } from '@/services/task';
-import type { Task } from '@/types/task';
+import { Task, TaskCreationPayload } from '@/types/task';
 
 type TaskState = {
   items: Task[];
@@ -22,10 +22,13 @@ export const getTasks = createAsyncThunk(
 );
 
 export const createTask = createAsyncThunk(
-  'task/createTask',
-  async ({ sprintName, data }: { sprintName: string; data: Omit<Task, 'id'> }, { dispatch }) => {
-    await taskService.createTask(sprintName, data);
-    return await dispatch(getTasks(sprintName)).unwrap();
+  'tasks/createTask',
+  async ({ sprintName, task }: { sprintName: string; task: TaskCreationPayload }, { rejectWithValue }) => {
+    try {
+      await taskService.createTask(sprintName, task);
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
   }
 );
 

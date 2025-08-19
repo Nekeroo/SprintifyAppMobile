@@ -10,3 +10,11 @@ export interface Task {
 export interface TasksByStatus {
   [status: string]: Task[];
 }
+
+export interface TaskCreationPayload {
+  name: string;
+  description: string;
+  dueDate: string;
+  storyPoints: number;
+  assignee: string;
+}
