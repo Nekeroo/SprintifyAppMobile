@@ -129,16 +129,15 @@ export default function SprintDetailScreen() {
     if (!sprintName) return;
     setStatsModalVisible(true);
     try {
-      const res = await dispatch(getSprintStats(sprintName as string)).unwrap();
-      console.log('[getSprintStats] success:', res);
+      await dispatch(getSprintStats(sprintName as string)).unwrap();
     } catch (e) {
       console.error('[getSprintStats] error:', e);
     }
   };
   
 
-  const renderTaskCard = ({ item }: { item: Task }) => (
-    <View style={styles.taskCard}>
+  const renderTaskCard = ({ item, idx }: { item: Task, idx: number }) => (
+    <View key={item.title+idx} style={styles.taskCard}>
       <Pressable
         style={{ flex: 1 }}
         onPress={() => {
@@ -193,7 +192,7 @@ export default function SprintDetailScreen() {
         count={tasksByStatus[status]?.length || 0}
       />
       <ScrollView>
-        {tasksByStatus[status]?.map((task) => renderTaskCard({ item: task }))}
+        {tasksByStatus[status]?.map((task, idx) => renderTaskCard({ item: task, idx }))}
       </ScrollView>
     </View>
   );
