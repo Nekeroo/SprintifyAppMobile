@@ -2,6 +2,7 @@ import { Stat } from "@/types/stat";
 import { SprintOverview } from "../types/sprint";
 import { Task, TasksByStatus } from "../types/task";
 import { API_CONFIG } from '@/config/api';
+import { authService } from "./auth";
 
 interface CreateSprintData {
   name: string;
@@ -9,24 +10,6 @@ interface CreateSprintData {
   startDate: string;
   endDate: string;
 }
-
-interface UpdateTaskData {
-  title: string;
-  description: string;
-  status: string;
-  dueDate: string;
-  usernameAssignee: string;
-  storyPoints: number;
-}
-
-interface CreateTaskData {
-  name: string;
-  description: string;
-  dueDate: string;
-  storyPoints: number;
-  assignee: string;
-}
-
 
 const formatDateForApi = (date: string): string => {
   const [year, month, day] = date.split('T')[0].split('-');
@@ -40,6 +23,7 @@ export const sprintService = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${await authService.getToken()}`,
       },
       body: JSON.stringify({
         ...data,
@@ -70,6 +54,9 @@ export const sprintService = {
   deleteSprint: async (sprintName: string): Promise<Response> => {
     const response = await fetch(`${API_CONFIG.BASE_URL}/sprints/delete/${encodeURIComponent(sprintName)}`, {
       method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${await authService.getToken()}`,
+      }
     });
 
     if (!response.ok) {
@@ -80,7 +67,11 @@ export const sprintService = {
   },
 
   statSprint: async (sprintName: string) : Promise<Stat> => {
-    const response = await fetch(`${API_CONFIG.BASE_URL}/sprints/${encodeURIComponent(sprintName)}/stats`);
+    const response = await fetch(`${API_CONFIG.BASE_URL}/sprints/${encodeURIComponent(sprintName)}/stats`, {
+      headers: {
+        'Authorization': `Bearer ${await authService.getToken()}`,
+      }
+    });
     
     if (!response.ok) {
       throw new Error('Erreur lors de la récupération des stats');

@@ -8,6 +8,9 @@ import { displayDateToApi, formatDate, isValidDate } from '@/services/dateUtils'
 import { useAppDispatch } from '@/store';
 import { createSprint } from '@/store/sprintSlice';
 
+const MAX_NAME_LENGTH = 50;
+const MAX_DESCRIPTION_LENGTH = 500;
+
 export default function CreateSprintScreen() {
   const { project } = useLocalSearchParams();
   const router = useRouter();
@@ -19,9 +22,21 @@ export default function CreateSprintScreen() {
   const [endDate, setEndDate] = useState('');
   const [error, setError] = useState('');
 
+  const handleNameChange = (text: string) => {
+    if (text.length <= MAX_NAME_LENGTH) {
+      setName(text);
+    }
+  };
+
+  const handleDescriptionChange = (text: string) => {
+    if (text.length <= MAX_DESCRIPTION_LENGTH) {
+      setDescription(text);
+    }
+  };
+
   const handleCreateSprint = async () => {
-    if (!name.trim()) {
-      setError('Le nom est requis');
+    if (!name.trim() || !description.trim() || !startDate.trim() || !endDate.trim()) {
+      setError('Tous les champs sont requis');
       return;
     }
 
@@ -33,8 +48,19 @@ export default function CreateSprintScreen() {
     const startDateStr = displayDateToApi(startDate);
     const endDateStr = displayDateToApi(endDate);
 
-    if (new Date(endDateStr) < new Date(startDateStr)) {
+    const startDateObj = new Date(startDateStr);
+    const endDateObj = new Date(endDateStr);
+
+    if (endDateObj < startDateObj) {
       setError('La date de fin doit être après la date de début');
+      return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (startDateObj < today) {
+      setError('La date de début ne peut pas être dans le passé');
       return;
     }
 
@@ -50,7 +76,7 @@ export default function CreateSprintScreen() {
       })).unwrap();
 
       router.replace({
-        pathname: '/project-detail',
+        pathname: '/(tabs)/project-detail',
         params: {
           project,
           reload: 'true'
@@ -79,33 +105,49 @@ export default function CreateSprintScreen() {
             <Text style={globalStyles.title}>Nouveau Sprint</Text>
 
             <View style={styles.formField}>
-              <Text style={styles.label}>Nom</Text>
-              <TextInput
-                  style={styles.input}
-                  value={name}
-                  onChangeText={setName}
-                  placeholder="Nom du sprint"
-                  placeholderTextColor={colors.text.secondary}
-              />
+              <Text style={styles.label}>Nom <Text style={styles.required}>*</Text></Text>
+              <View style={styles.inputContainer}>
+                <TextInput
+                    style={[styles.input, styles.inputWithCounter]}
+                    value={name}
+                    onChangeText={handleNameChange}
+                    placeholder="Nom du sprint"
+                    placeholderTextColor={colors.text.secondary}
+                />
+                <Text style={[
+                  styles.charCount,
+                  name.length === MAX_NAME_LENGTH && styles.charCountLimit
+                ]}>
+                  {name.length}/{MAX_NAME_LENGTH}
+                </Text>
+              </View>
             </View>
 
             <View style={styles.formField}>
-              <Text style={styles.label}>Description</Text>
-              <TextInput
-                  style={[styles.input, styles.textArea]}
-                  value={description}
-                  onChangeText={setDescription}
-                  placeholder="Description du sprint"
-                  placeholderTextColor={colors.text.secondary}
-                  multiline
-                  numberOfLines={4}
-              />
+              <Text style={styles.label}>Description <Text style={styles.required}>*</Text></Text>
+              <View style={styles.inputContainer}>
+                <TextInput
+                    style={[styles.input, styles.textArea, styles.inputWithCounter]}
+                    value={description}
+                    onChangeText={handleDescriptionChange}
+                    placeholder="Description du sprint"
+                    placeholderTextColor={colors.text.secondary}
+                    multiline
+                    numberOfLines={4}
+                />
+                <Text style={[
+                  styles.charCount,
+                  description.length === MAX_DESCRIPTION_LENGTH && styles.charCountLimit
+                ]}>
+                  {description.length}/{MAX_DESCRIPTION_LENGTH}
+                </Text>
+              </View>
             </View>
 
             <View style={styles.formField}>
-              <Text style={styles.label}>Date de début (JJ/MM/AAAA)</Text>
+              <Text style={styles.label}>Date de début (JJ/MM/AAAA) <Text style={styles.required}>*</Text></Text>
               <TextInput
-                  style={styles.input}
+                  style={[styles.input, !isValidDate(startDate) && startDate.length > 0 && styles.inputError]}
                   value={startDate}
                   onChangeText={(text) => setStartDate(formatDate(text))}
                   placeholder="JJ/MM/AAAA"
@@ -116,9 +158,9 @@ export default function CreateSprintScreen() {
             </View>
 
             <View style={styles.formField}>
-              <Text style={styles.label}>Date de fin (JJ/MM/AAAA)</Text>
+              <Text style={styles.label}>Date de fin (JJ/MM/AAAA) <Text style={styles.required}>*</Text></Text>
               <TextInput
-                  style={styles.input}
+                  style={[styles.input, !isValidDate(endDate) && endDate.length > 0 && styles.inputError]}
                   value={endDate}
                   onChangeText={(text) => setEndDate(formatDate(text))}
                   placeholder="JJ/MM/AAAA"
@@ -164,6 +206,20 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontSize: 16,
   },
+  inputContainer: {
+    marginBottom: spacing.sm,
+  },
+  inputWithCounter: {
+    marginBottom: spacing.xs,
+  },
+  charCount: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    textAlign: 'right',
+  },
+  charCountLimit: {
+    color: colors.error,
+  },
   textArea: {
     height: 100,
     textAlignVertical: 'top',
@@ -171,6 +227,9 @@ const styles = StyleSheet.create({
   error: {
     color: colors.error,
     marginBottom: spacing.md,
+  },
+  required: {
+    color: colors.error,
   },
   backButton: {
     flexDirection: 'row',
