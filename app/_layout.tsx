@@ -45,7 +45,7 @@ const useProtectedRoute = () => {
     if (!isAuthed && !inAuthGroup) {
       router.replace("/(auth)");
     } else if (isAuthed && inAuthGroup) {
-      router.replace("/(tabs)");
+      router.replace("/(tabs)/projects");
     }
   }, [user, status, segments, router]);
 
