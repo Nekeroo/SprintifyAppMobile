@@ -124,38 +124,52 @@ const CreateTaskModal = ({
 
   const handleCreate = async () => {
     // Validation des champs requis
+    const validationErrors = [];
+
     if (!newTask.name.trim()) {
-      setError('Le titre est requis');
-      return;
+      validationErrors.push('Le titre est requis');
+    } else if (newTask.name.length > MAX_TITLE_LENGTH) {
+      validationErrors.push(`Le titre ne doit pas dépasser ${MAX_TITLE_LENGTH} caractères`);
     }
 
-    if (newTask.storyPoints < 0) {
-      setError('Les points de story doivent être positifs');
-      return;
+    if (!newTask.description.trim()) {
+      validationErrors.push('La description est requise');
+    } else if (newTask.description.length > MAX_DESCRIPTION_LENGTH) {
+      validationErrors.push(`La description ne doit pas dépasser ${MAX_DESCRIPTION_LENGTH} caractères`);
     }
 
     if (!newTask.dueDate) {
-      setError('La date d\'échéance est requise');
-      return;
+      validationErrors.push('La date d\'échéance est requise');
     }
 
-    if (newTask.name.length > MAX_TITLE_LENGTH) {
-      setError('Le titre ne doit pas dépasser 50 caractères');
-      return;
+    if (!selectedAssignee) {
+      validationErrors.push('L\'assignation à un utilisateur est requise');
     }
 
-    if (newTask.description.length > MAX_DESCRIPTION_LENGTH) {
-      setError('La description ne doit pas dépasser 500 caractères');
+    if (newTask.storyPoints < 0) {
+      validationErrors.push('Les points de story doivent être positifs');
+    } else if (!newTask.storyPoints) {
+      validationErrors.push('Les points de story sont requis');
+    }
+
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join('\n'));
       return;
     }
 
     try {
+      setError(null);
       await onCreate({
         ...newTask,
         assignee: selectedAssignee?.username || ''
       });
+      onClose();
     } catch (err: any) {
-      setError(err.message || 'Erreur lors de la création de la tâche');
+      if (err.message.includes('authentification')) {
+        setError('Erreur d\'authentification. Veuillez vous reconnecter.');
+      } else {
+        setError(err.message || 'Erreur lors de la création de la tâche');
+      }
     }
   };
 
@@ -217,7 +231,7 @@ const CreateTaskModal = ({
 
             {/* Description */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Description</Text>
+              <Text style={styles.inputLabel}>Description <Text style={styles.required}>*</Text></Text>
               <TextInput
                 style={[styles.input, styles.textArea, styles.inputWithCounter]}
                 value={newTask.description}
@@ -237,7 +251,7 @@ const CreateTaskModal = ({
             </View>
 
             {/* Assigné à */}
-            <Text style={styles.inputLabel}>Assigné à</Text>
+            <Text style={styles.inputLabel}>Assigné à <Text style={styles.required}>*</Text></Text>
             {selectedAssignee ? (
               <View style={styles.selectedUserContainer}>
                 <View style={styles.selectedUserInfo}>
@@ -293,7 +307,7 @@ const CreateTaskModal = ({
             )}
 
             {/* Points de story */}
-            <Text style={styles.inputLabel}>Points de story</Text>
+            <Text style={styles.inputLabel}>Points de story <Text style={styles.required}>*</Text></Text>
             <View style={styles.pointsSelector}>
               {[1, 2, 3, 5, 8, 13].map((points) => (
                 <Pressable
@@ -385,7 +399,17 @@ const CreateTaskModal = ({
               </View>
             )}
 
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            {error ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>
+                  {error.split('\n').map((line, i) => (
+                    <Text key={i}>
+                      {i > 0 ? '\n' : ''}• {line}
+                    </Text>
+                  ))}
+                </Text>
+              </View>
+            ) : null}
 
             <Text style={styles.requiredFieldNote}>* Champs requis</Text>
 
@@ -403,11 +427,11 @@ const CreateTaskModal = ({
               <Pressable
                 style={({ pressed }) => [
                   styles.createButton,
-                  (isCreating || !newTask.name.trim() || !newTask.dueDate || newTask.storyPoints < 0) && styles.createButtonDisabled,
+                  isCreating && styles.createButtonDisabled,
                   pressed && globalStyles.buttonPressed,
                 ]}
                 onPress={handleCreate}
-                disabled={isCreating || !newTask.name.trim() || !newTask.dueDate || newTask.storyPoints < 0}
+                disabled={isCreating}
               >
                 <Text style={styles.createButtonText}>
                   {isCreating ? 'Création...' : 'Créer'}
@@ -507,9 +531,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  errorContainer: {
+    backgroundColor: colors.error + '15',
+    padding: spacing.sm,
+    borderRadius: 8,
+    marginVertical: spacing.sm,
+  },
   errorText: {
     color: colors.error,
-    marginBottom: spacing.md,
+    fontSize: 14,
   },
   requiredFieldNote: {
     fontSize: 12,
