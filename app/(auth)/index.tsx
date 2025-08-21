@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StyleSheet, TextInput, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { Pressable } from 'react-native';
@@ -22,7 +22,22 @@ function AuthScreen() {
   });
 
   const dispatch = useAppDispatch();
-  const { status, error } = useAppSelector((state) => state.auth);
+  const { user, status, error } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (status !== "loading" && user) {
+      router.replace("/(tabs)/projects");
+    }
+  }, [user, status]);
+
+  if (status === "loading" || user) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>Chargement du compte...</Text>
+      </View>
+    );
+  }
 
   const validateField = (field: string, value: string) => {
     switch (field) {
@@ -67,7 +82,6 @@ function AuthScreen() {
     setCredentials(prev => ({ ...prev, [field]: value }));
     const error = validateField(field, value);
     if (field === 'password') {
-      // Revalidate confirmPassword when password changes
       const confirmError = validateField('confirmPassword', credentials.confirmPassword);
       setErrors(prev => ({ ...prev, [field]: error, confirmPassword: confirmError }));
     } else {
@@ -287,6 +301,18 @@ const styles = StyleSheet.create({
   errorMessage: {
     color: '#dc3545',
     fontSize: 14,
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#6b7280',
     textAlign: 'center',
   },
 });

@@ -5,9 +5,9 @@ import {
   ThemeProvider,
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Slot, Stack, useRootNavigation, useRootNavigationState, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/components/useColorScheme";
@@ -19,15 +19,13 @@ import { Provider } from "react-redux";
 
 export { ErrorBoundary } from "expo-router";
 
-export const unstable_settings = {
-  initialRouteName: "(auth)",
-};
 
 SplashScreen.preventAutoHideAsync();
 
 const useProtectedRoute = () => {
   const segments = useSegments();
   const router = useRouter();
+  const rootNavigationState = useRootNavigationState();
 
   const dispatch = useAppDispatch();
   const { user, status } = useAppSelector((state) => state.auth);
@@ -37,19 +35,24 @@ const useProtectedRoute = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    if (status === "loading") return;
+    if (!rootNavigationState?.key || status === "loading") {
+      return;
+    }
 
     const isAuthed = !!user;
-    const inAuthGroup = segments[0] === "(auth)";
+    
+    // Navigate immediately based on auth status
+    setTimeout(() => {
+      if (isAuthed) {
+        router.replace("/(tabs)/projects");
+      } else {
+        router.replace("/(auth)");
+      }
+    }, 0);
+  }, [user, status, router, rootNavigationState?.key]);
 
-    if (!isAuthed && !inAuthGroup) {
-      router.replace("/(auth)");
-    } else if (isAuthed && inAuthGroup) {
-      router.replace("/(tabs)/projects");
-    }
-  }, [user, status, segments, router]);
-
-  return status !== "loading";
+  // Only show content when auth status is determined and navigation is ready
+  return rootNavigationState?.key && status !== "loading";
 };
 
 export default function RootLayout() {
@@ -78,6 +81,9 @@ function ProtectedApp({ colorScheme }: { colorScheme: string }) {
     if (readyForNavigation) {
       SplashScreen.hideAsync();
     }
+    else {
+      SplashScreen.preventAutoHideAsync();
+    }
   }, [readyForNavigation]);
 
   if (!readyForNavigation) return null;
@@ -85,11 +91,7 @@ function ProtectedApp({ colorScheme }: { colorScheme: string }) {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: true }} />
-        </Stack>
+        <Slot />
       </ThemeProvider>
     </GestureHandlerRootView>
   );
