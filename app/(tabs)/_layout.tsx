@@ -25,6 +25,7 @@ export default function TabLayout() {
   screenOptions={{
     tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
     headerShown: useClientOnlyValue(false, true),
+    headerTitle: 'Sprintify',
   }}
 >
   {/* Onglets visibles */}
