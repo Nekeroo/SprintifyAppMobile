@@ -25,13 +25,13 @@ import { Task, TasksByStatus, TaskCreationPayload } from "@/types/task";
 import EditTaskModal from "@/components/EditTaskModal";
 import CreateTaskModal from "@/components/CreateTaskModal";
 
+const ORDERED_STATUSES = ["Ready", "In Progress", "Review", "Done"] as const;
+
 export default function SprintDetailScreen() {
   const { sprintName, projectName } = useLocalSearchParams();
   const dispatch = useAppDispatch();
 
-  const projectState = useAppSelector(
-    (state) => state.project)
-    
+  const projectState = useAppSelector((state) => state.project);
   const isLoadingProject = projectState?.status === "loading";
   const projectError = projectState?.error;
 
@@ -65,16 +65,27 @@ export default function SprintDetailScreen() {
   const [statsModalVisible, setStatsModalVisible] = useState(false);
 
   useEffect(() => {
-    if (tasks.length > 0) {
-      const organizedTasks = tasks.reduce((acc: TasksByStatus, task) => {
-        const status = task.status || "TODO";
-        if (!acc[status]) acc[status] = [];
-        acc[status].push(task);
-        return acc;
-      }, {});
-      setTasksByStatus(organizedTasks);
-      setStatusColumns(Object.keys(organizedTasks));
-    }
+    // Pré-initialiser les colonnes cibles pour qu'elles s'affichent même vides
+    const base: TasksByStatus = ORDERED_STATUSES.reduce((acc, st) => {
+      acc[st] = [];
+      return acc;
+    }, {} as TasksByStatus);
+
+    // Répartir les tâches
+    const filled = tasks.reduce((acc: TasksByStatus, task) => {
+      const status = task.status || "Ready";
+      if (!acc[status]) acc[status] = [];
+      acc[status].push(task);
+      return acc;
+    }, { ...base });
+
+    // Colonnes supplémentaires (statuts non prévus) -> append après l'ordre imposé
+    const extraStatuses = Object.keys(filled).filter(
+      (s) => !ORDERED_STATUSES.includes(s as any)
+    );
+
+    setTasksByStatus(filled);
+    setStatusColumns([...ORDERED_STATUSES, ...extraStatuses]);
   }, [tasks]);
 
   useFocusEffect(
@@ -98,14 +109,16 @@ export default function SprintDetailScreen() {
 
   const handleCreateTask = async (task: TaskCreationPayload) => {
     try {
-      await dispatch(createTask({ 
-        sprintName: sprintName as string,
-        task
-      })).unwrap();
+      await dispatch(
+        createTask({
+          sprintName: sprintName as string,
+          task,
+        })
+      ).unwrap();
       await dispatch(getTasks(sprintName as string));
       setCreateTaskModalVisible(false);
     } catch (error: any) {
-      console.error('Error creating task:', error);
+      console.error("Error creating task:", error);
     }
   };
 
@@ -131,13 +144,12 @@ export default function SprintDetailScreen() {
     try {
       await dispatch(getSprintStats(sprintName as string)).unwrap();
     } catch (e) {
-      console.error('[getSprintStats] error:', e);
+      console.error("[getSprintStats] error:", e);
     }
   };
-  
 
-  const renderTaskCard = ({ item, idx }: { item: Task, idx: number }) => (
-    <View key={item.title+idx} style={styles.taskCard}>
+  const renderTaskCard = ({ item, idx }: { item: Task; idx: number }) => (
+    <View key={item.title + idx} style={styles.taskCard}>
       <Pressable
         style={{ flex: 1 }}
         onPress={() => {
@@ -154,9 +166,7 @@ export default function SprintDetailScreen() {
         <View style={styles.taskFooter}>
           <Text
             style={
-              item.usernameAssignee
-                ? styles.taskAssignee
-                : styles.taskUnassigned
+              item.usernameAssignee ? styles.taskAssignee : styles.taskUnassigned
             }
           >
             {item.usernameAssignee || "Non assigné"}
@@ -169,7 +179,6 @@ export default function SprintDetailScreen() {
         </View>
       </Pressable>
 
-      {/* Bouton supprimer */}
       <Pressable
         style={({ pressed }) => [
           styles.deleteButton,
@@ -180,17 +189,14 @@ export default function SprintDetailScreen() {
           setDeleteModalVisible(true);
         }}
       >
-        <FontAwesome name="trash" size={16} color={colors.background} />
+        <FontAwesome name="trash" size={16} color={colors.background.primary} />
       </Pressable>
     </View>
   );
 
   const renderStatusColumn = (status: string) => (
     <View key={status} style={styles.statusColumn}>
-      <ColumnHeader
-        status={status}
-        count={tasksByStatus[status]?.length || 0}
-      />
+      <ColumnHeader status={status} count={tasksByStatus[status]?.length || 0} />
       <ScrollView>
         {tasksByStatus[status]?.map((task, idx) => renderTaskCard({ item: task, idx }))}
       </ScrollView>
@@ -206,30 +212,13 @@ export default function SprintDetailScreen() {
     );
   }
 
-  return (
-    <View style={styles.container}>
-      <HeaderSection />
-      {isLoadingProject || isLoadingSprints || isLoadingTasks ? (
-        <LoadingSection />
-      ) : projectError || sprintError || tasksError ? (
-        <ErrorSection />
-      ) : (
-        <ScrollView horizontal contentContainerStyle={styles.columns}>
-          {statusColumns.map(renderStatusColumn)}
-        </ScrollView>
-      )}
-      <ModalsSection />
-    </View>
-  );
-
   function HeaderSection() {
     return (
       <View style={styles.header}>
         <Text style={globalStyles.title}>
-          {currentSprint?.name || sprintName}
+          {currentSprint?.name || (sprintName as string)}
         </Text>
         <View style={{ flexDirection: "row", gap: spacing.sm }}>
-          {/* Bouton stats */}
           <Pressable
             style={({ pressed }) => [
               styles.statsButton,
@@ -241,7 +230,6 @@ export default function SprintDetailScreen() {
             <Text style={styles.statsButtonText}>Stats</Text>
           </Pressable>
 
-          {/* Bouton nouvelle tâche */}
           <Pressable
             style={({ pressed }) => [
               styles.addTaskButton,
@@ -268,7 +256,9 @@ export default function SprintDetailScreen() {
   function ErrorSection() {
     return (
       <View style={globalStyles.errorContainer}>
-        <Text style={globalStyles.errorText}>{projectError || sprintError || tasksError}</Text>
+        <Text style={globalStyles.errorText}>
+          {projectError || sprintError || tasksError}
+        </Text>
         <Pressable
           style={({ pressed }) => [
             globalStyles.button,
@@ -359,7 +349,9 @@ export default function SprintDetailScreen() {
                 <>
                   <Text style={styles.statsItem}>Nb tâches : {statsState.data.nbTask}</Text>
                   <Text style={styles.statsItem}>Terminées : {statsState.data.nbTaskDone}</Text>
-                  <Text style={styles.statsItem}>Non terminées : {statsState.data.nbTaskNotDone}</Text>
+                  <Text style={styles.statsItem}>
+                    Non terminées : {statsState.data.nbTaskNotDone}
+                  </Text>
                   <Text style={styles.statsItem}>Capacité : {statsState.data.capacity}</Text>
                 </>
               )}
@@ -375,6 +367,22 @@ export default function SprintDetailScreen() {
       </>
     );
   }
+
+  return (
+    <View style={styles.container}>
+      <HeaderSection />
+      {isLoadingProject || isLoadingSprints || isLoadingTasks ? (
+        <LoadingSection />
+      ) : projectError || sprintError || tasksError ? (
+        <ErrorSection />
+      ) : (
+        <ScrollView horizontal contentContainerStyle={styles.columns}>
+          {statusColumns.map(renderStatusColumn)}
+        </ScrollView>
+      )}
+      <ModalsSection />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -510,7 +518,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   modalContent: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.background.primary,
     borderRadius: 12,
     padding: spacing.lg,
     width: "80%",
@@ -528,7 +536,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalButtonText: {
-    color: colors.background,
+    color: colors.background.primary,
     fontWeight: "bold",
   },
   statsItem: {

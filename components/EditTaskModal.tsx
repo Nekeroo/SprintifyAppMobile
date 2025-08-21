@@ -26,7 +26,7 @@ const EditTaskModal = ({
   const [showDueDatePicker, setShowDueDatePicker] = useState(false);
   
   // Statuts disponibles pour les tâches
-  const availableStatuses = ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'];
+  const availableStatuses = ['TODO', 'IN_PROGRESS', 'IN_TEST', 'DONE'];
 
   // Reset edited task when the modal opens with a new task
   React.useEffect(() => {
