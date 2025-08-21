@@ -25,7 +25,7 @@ import { Task, TasksByStatus, TaskCreationPayload } from "@/types/task";
 import EditTaskModal from "@/components/EditTaskModal";
 import CreateTaskModal from "@/components/CreateTaskModal";
 
-const ORDERED_STATUSES = ["Ready", "In Progress", "Review", "Done"] as const;
+const ORDERED_STATUSES = ["Ready", "In Progress", "In Test", "Done"] as const;
 
 export default function SprintDetailScreen() {
   const { sprintName, projectName } = useLocalSearchParams();
@@ -512,13 +512,13 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
     padding: spacing.md,
+    backgroundColor: "rgba(0,0,0,0.5)"
   },
   modalContent: {
-    backgroundColor: colors.background.primary,
+    backgroundColor: "#ffffff",
     borderRadius: 12,
     padding: spacing.lg,
     width: "80%",
