@@ -317,7 +317,10 @@ const CreateTaskModal = ({
                     newTask.storyPoints === points && styles.selectedPoints,
                     pressed && globalStyles.buttonPressed,
                   ]}
-                  onPress={() => setNewTask({ ...newTask, storyPoints: points })}
+                  onPress={() => {
+                    setNewTask({ ...newTask, storyPoints: points });
+                    scrollToInput(300);
+                  }}
                   disabled={isCreating}
                 >
                   <Text
@@ -336,7 +339,10 @@ const CreateTaskModal = ({
             <Text style={styles.inputLabel}>Date d'échéance <Text style={styles.required}>*</Text></Text>
             <Pressable
               style={styles.datePickerButton}
-              onPress={() => setShowDueDatePicker(true)}
+              onPress={() => {
+                setShowDueDatePicker(true);
+                scrollToInput(400);
+              }}
               disabled={isCreating}
             >
               <Text>
