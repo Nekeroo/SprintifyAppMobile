@@ -17,7 +17,12 @@ export default function CreateProjectScreen() {
   const [userSearch, setUserSearch] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userSuggestions, setUserSuggestions] = useState<User[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState({
+    name: '',
+    description: '',
+    owner: ''
+  });
+  const [globalError, setGlobalError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
@@ -44,47 +49,77 @@ export default function CreateProjectScreen() {
     setSelectedUser(user);
     setUserSearch(user.username);
     setUserSuggestions([]);
+    const error = validateField('owner', '');
+    setErrors(prev => ({ ...prev, owner: error }));
+  };
+
+  const validateField = (field: string, value: string) => {
+    switch (field) {
+      case 'name':
+        if (!value.trim()) {
+          return 'Le nom du projet est requis';
+        }
+        if (value.length > MAX_NAME_LENGTH) {
+          return `Le nom ne doit pas dépasser ${MAX_NAME_LENGTH} caractères`;
+        }
+        return '';
+      case 'description':
+        if (!value.trim()) {
+          return 'La description est requise';
+        }
+        if (value.length > MAX_DESCRIPTION_LENGTH) {
+          return `La description ne doit pas dépasser ${MAX_DESCRIPTION_LENGTH} caractères`;
+        }
+        return '';
+      case 'owner':
+        if (!selectedUser) {
+          return 'Le propriétaire est requis';
+        }
+        return '';
+    }
+    return '';
+  };
+
+  const handleFieldChange = (field: string, value: string) => {
+    if (field === 'name') {
+      if (value.length <= MAX_NAME_LENGTH) {
+        setName(value);
+      }
+    } else if (field === 'description') {
+      if (value.length <= MAX_DESCRIPTION_LENGTH) {
+        setDescription(value);
+      }
+    }
+    
+    const error = validateField(field, value);
+    setErrors(prev => ({ ...prev, [field]: error }));
   };
 
   const handleNameChange = (text: string) => {
-    if (text.length <= MAX_NAME_LENGTH) {
-      setName(text);
-    }
+    handleFieldChange('name', text);
   };
 
   const handleDescriptionChange = (text: string) => {
-    if (text.length <= MAX_DESCRIPTION_LENGTH) {
-      setDescription(text);
-    }
+    handleFieldChange('description', text);
+  };
+
+  const validateForm = () => {
+    const newErrors = {
+      name: validateField('name', name),
+      description: validateField('description', description),
+      owner: validateField('owner', '')
+    };
+
+    setErrors(newErrors);
+    return !Object.values(newErrors).some(error => error !== '');
   };
 
   const handleSubmit = async () => {
-    const validationErrors = [];
-
-    if (!name.trim()) {
-      validationErrors.push('Le nom du projet est requis');
-    } else if (name.length > MAX_NAME_LENGTH) {
-      validationErrors.push(`Le nom ne doit pas dépasser ${MAX_NAME_LENGTH} caractères`);
-    }
-
-    if (!description.trim()) {
-      validationErrors.push('La description est requise');
-    } else if (description.length > MAX_DESCRIPTION_LENGTH) {
-      validationErrors.push(`La description ne doit pas dépasser ${MAX_DESCRIPTION_LENGTH} caractères`);
-    }
-
-    if (!selectedUser) {
-      validationErrors.push('Le propriétaire est requis');
-    }
-
-    if (validationErrors.length > 0) {
-      setError(validationErrors.join('\n'));
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
       setIsSubmitting(true);
-      setError(null);
+      setGlobalError(null);
       await projectService.createProject({
         name: name.trim(),
         description: description.trim(),
@@ -94,7 +129,7 @@ export default function CreateProjectScreen() {
       // Retourner à la liste des projets et forcer un rafraîchissement
       router.replace('/(tabs)/projects');
     } catch (err) {
-      setError('Erreur lors de la création du projet');
+      setGlobalError('Erreur lors de la création du projet');
       console.error(err);
     } finally {
       setIsSubmitting(false);
@@ -110,13 +145,19 @@ export default function CreateProjectScreen() {
           <View style={styles.formContainer}>
             <Text style={globalStyles.title}>Créer un nouveau projet</Text>
 
-            {error && (
-                <Text style={globalStyles.errorText}>{error}</Text>
+            {globalError && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorMessage}>{globalError}</Text>
+              </View>
             )}
 
             <View style={styles.inputContainer}>
               <TextInput
-                  style={[globalStyles.input, styles.inputWithCounter]}
+                  style={[
+                    globalStyles.input, 
+                    styles.inputWithCounter,
+                    errors.name ? styles.inputError : null
+                  ]}
                   placeholder="Nom du projet"
                   value={name}
                   onChangeText={handleNameChange}
@@ -130,11 +171,17 @@ export default function CreateProjectScreen() {
               ]}>
                 {name.length}/{MAX_NAME_LENGTH}
               </Text>
+              {errors.name ? <Text style={styles.errorText}>{errors.name}</Text> : null}
             </View>
 
             <View style={styles.inputContainer}>
               <TextInput
-                  style={[globalStyles.input, styles.textArea, styles.inputWithCounter]}
+                  style={[
+                    globalStyles.input, 
+                    styles.textArea, 
+                    styles.inputWithCounter,
+                    errors.description ? styles.inputError : null
+                  ]}
                   placeholder="Description du projet"
                   value={description}
                   onChangeText={handleDescriptionChange}
@@ -150,6 +197,7 @@ export default function CreateProjectScreen() {
               ]}>
                 {description.length}/{MAX_DESCRIPTION_LENGTH}
               </Text>
+              {errors.description ? <Text style={styles.errorText}>{errors.description}</Text> : null}
             </View>
 
             <View style={styles.userSearchContainer}>
@@ -177,7 +225,10 @@ export default function CreateProjectScreen() {
               ) : (
                   <>
                     <TextInput
-                        style={globalStyles.input}
+                        style={[
+                          globalStyles.input,
+                          errors.owner ? styles.inputError : null
+                        ]}
                         placeholder="Rechercher un propriétaire"
                         value={userSearch}
                         onChangeText={setUserSearch}
@@ -207,6 +258,7 @@ export default function CreateProjectScreen() {
                     )}
                   </>
               )}
+              {errors.owner ? <Text style={styles.errorText}>{errors.owner}</Text> : null}
             </View>
             
           </View>
@@ -304,5 +356,27 @@ const styles = StyleSheet.create({
   },
   required: {
     color: colors.error,
+  },
+  inputError: {
+    borderColor: '#dc3545',
+    borderWidth: 1,
+  },
+  errorText: {
+    color: '#dc3545',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  errorContainer: {
+    backgroundColor: '#ffebee',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#dc3545',
+  },
+  errorMessage: {
+    color: '#dc3545',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });

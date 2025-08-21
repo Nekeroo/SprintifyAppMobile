@@ -29,51 +29,117 @@ export default function CreateSprintScreen() {
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({
+    name: '',
+    description: '',
+    startDate: '',
+    endDate: ''
+  });
+  const [globalError, setGlobalError] = useState('');
+
+  const validateField = (field: string, value: string) => {
+    switch (field) {
+      case 'name':
+        if (!value.trim()) {
+          return 'Le nom du sprint est requis';
+        }
+        if (value.length > MAX_NAME_LENGTH) {
+          return `Le nom ne doit pas dépasser ${MAX_NAME_LENGTH} caractères`;
+        }
+        return '';
+      case 'description':
+        if (!value.trim()) {
+          return 'La description est requise';
+        }
+        if (value.length > MAX_DESCRIPTION_LENGTH) {
+          return `La description ne doit pas dépasser ${MAX_DESCRIPTION_LENGTH} caractères`;
+        }
+        return '';
+      case 'startDate':
+        if (!value.trim()) {
+          return 'La date de début est requise';
+        }
+        if (!isValidDate(value)) {
+          return 'Format de date invalide (JJ/MM/AAAA)';
+        }
+        const startDateObj = new Date(displayDateToApi(value));
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (startDateObj < today) {
+          return 'La date de début ne peut pas être dans le passé';
+        }
+        return '';
+      case 'endDate':
+        if (!value.trim()) {
+          return 'La date de fin est requise';
+        }
+        if (!isValidDate(value)) {
+          return 'Format de date invalide (JJ/MM/AAAA)';
+        }
+        if (startDate && isValidDate(startDate)) {
+          const startDateObj = new Date(displayDateToApi(startDate));
+          const endDateObj = new Date(displayDateToApi(value));
+          if (endDateObj < startDateObj) {
+            return 'La date de fin doit être après la date de début';
+          }
+        }
+        return '';
+    }
+    return '';
+  };
+
+  const handleFieldChange = (field: string, value: string) => {
+    if (field === 'name') {
+      if (value.length <= MAX_NAME_LENGTH) {
+        setName(value);
+      }
+    } else if (field === 'description') {
+      if (value.length <= MAX_DESCRIPTION_LENGTH) {
+        setDescription(value);
+      }
+    } else if (field === 'startDate') {
+      setStartDate(formatDate(value));
+      // Re-validate endDate when startDate changes
+      if (endDate) {
+        const endDateError = validateField('endDate', endDate);
+        setErrors(prev => ({ ...prev, endDate: endDateError }));
+      }
+    } else if (field === 'endDate') {
+      setEndDate(formatDate(value));
+    }
+    
+    const error = validateField(field, field === 'startDate' || field === 'endDate' ? formatDate(value) : value);
+    setErrors(prev => ({ ...prev, [field]: error }));
+  };
 
   const handleNameChange = (text: string) => {
-    if (text.length <= MAX_NAME_LENGTH) {
-      setName(text);
-    }
+    handleFieldChange('name', text);
   };
 
   const handleDescriptionChange = (text: string) => {
-    if (text.length <= MAX_DESCRIPTION_LENGTH) {
-      setDescription(text);
-    }
+    handleFieldChange('description', text);
+  };
+
+  const validateForm = () => {
+    const newErrors = {
+      name: validateField('name', name),
+      description: validateField('description', description),
+      startDate: validateField('startDate', startDate),
+      endDate: validateField('endDate', endDate)
+    };
+
+    setErrors(newErrors);
+    return !Object.values(newErrors).some(error => error !== '');
   };
 
   const handleCreateSprint = async () => {
-    if (!name.trim() || !description.trim() || !startDate.trim() || !endDate.trim()) {
-      setError('Tous les champs sont requis');
-      return;
-    }
-
-    if (!isValidDate(startDate) || !isValidDate(endDate)) {
-      setError('Format de date invalide (JJ/MM/AAAA)');
-      return;
-    }
-
-    const startDateStr = displayDateToApi(startDate);
-    const endDateStr = displayDateToApi(endDate);
-
-    const startDateObj = new Date(startDateStr);
-    const endDateObj = new Date(endDateStr);
-
-    if (endDateObj < startDateObj) {
-      setError('La date de fin doit être après la date de début');
-      return;
-    }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (startDateObj < today) {
-      setError('La date de début ne peut pas être dans le passé');
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
+      setGlobalError('');
+      const startDateStr = displayDateToApi(startDate);
+      const endDateStr = displayDateToApi(endDate);
+      
       await dispatch(createSprint({
         projectName: project as string,
         data: {
@@ -92,7 +158,7 @@ export default function CreateSprintScreen() {
         }
       });
     } catch (err: any) {
-      setError(err.message || 'Erreur lors de la création du sprint');
+      setGlobalError(err.message || 'Erreur lors de la création du sprint');
     }
   };
 
@@ -113,11 +179,21 @@ export default function CreateSprintScreen() {
         <View style={[globalStyles.card, styles.form]}>
           <Text style={globalStyles.title}>Nouveau Sprint</Text>
 
+          {globalError && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorMessage}>{globalError}</Text>
+            </View>
+          )}
+
           <View style={styles.formField}>
             <Text style={styles.label}>Nom <Text style={styles.required}>*</Text></Text>
             <View style={styles.inputContainer}>
               <TextInput
-                style={[styles.input, styles.inputWithCounter]}
+                style={[
+                  styles.input, 
+                  styles.inputWithCounter,
+                  errors.name ? styles.inputError : null
+                ]}
                 value={name}
                 onChangeText={handleNameChange}
                 placeholder="Nom du sprint"
@@ -130,6 +206,7 @@ export default function CreateSprintScreen() {
               ]}>
                 {name.length}/{MAX_NAME_LENGTH}
               </Text>
+              {errors.name ? <Text style={styles.errorText}>{errors.name}</Text> : null}
             </View>
           </View>
 
@@ -137,7 +214,12 @@ export default function CreateSprintScreen() {
             <Text style={styles.label}>Description <Text style={styles.required}>*</Text></Text>
             <View style={styles.inputContainer}>
               <TextInput
-                style={[styles.input, styles.textArea, styles.inputWithCounter]}
+                style={[
+                  styles.input, 
+                  styles.textArea, 
+                  styles.inputWithCounter,
+                  errors.description ? styles.inputError : null
+                ]}
                 value={description}
                 onChangeText={handleDescriptionChange}
                 placeholder="Description du sprint"
@@ -152,38 +234,46 @@ export default function CreateSprintScreen() {
               ]}>
                 {description.length}/{MAX_DESCRIPTION_LENGTH}
               </Text>
+              {errors.description ? <Text style={styles.errorText}>{errors.description}</Text> : null}
             </View>
           </View>
 
           <View style={styles.formField}>
             <Text style={styles.label}>Date de début (JJ/MM/AAAA) <Text style={styles.required}>*</Text></Text>
             <TextInput
-              style={[styles.input, !isValidDate(startDate) && startDate.length > 0 && styles.inputError]}
+              style={[
+                styles.input, 
+                errors.startDate ? styles.inputError : null
+              ]}
               value={startDate}
-              onChangeText={(text) => setStartDate(formatDate(text))}
+              onChangeText={(text) => handleFieldChange('startDate', text)}
               placeholder="JJ/MM/AAAA"
               placeholderTextColor={colors.text.secondary}
               keyboardType="numeric"
               maxLength={10}
               onFocus={() => scrollToInput(200)}
             />
+            {errors.startDate ? <Text style={styles.errorText}>{errors.startDate}</Text> : null}
           </View>
 
           <View style={styles.formField}>
             <Text style={styles.label}>Date de fin (JJ/MM/AAAA) <Text style={styles.required}>*</Text></Text>
             <TextInput
-              style={[styles.input, !isValidDate(endDate) && endDate.length > 0 && styles.inputError]}
+              style={[
+                styles.input, 
+                errors.endDate ? styles.inputError : null
+              ]}
               value={endDate}
-              onChangeText={(text) => setEndDate(formatDate(text))}
+              onChangeText={(text) => handleFieldChange('endDate', text)}
               placeholder="JJ/MM/AAAA"
               placeholderTextColor={colors.text.secondary}
               keyboardType="numeric"
               maxLength={10}
               onFocus={() => scrollToInput(300)}
             />
+            {errors.endDate ? <Text style={styles.errorText}>{errors.endDate}</Text> : null}
           </View>
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <Pressable
             style={({pressed}) => [
@@ -237,9 +327,27 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: 'top',
   },
-  error: {
-    color: colors.error,
-    marginBottom: spacing.md,
+  errorText: {
+    color: '#dc3545',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  errorContainer: {
+    backgroundColor: '#ffebee',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#dc3545',
+  },
+  errorMessage: {
+    color: '#dc3545',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  inputError: {
+    borderColor: '#dc3545',
+    borderWidth: 1,
   },
   required: {
     color: colors.error,

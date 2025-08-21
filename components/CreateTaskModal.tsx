@@ -58,7 +58,14 @@ const CreateTaskModal = ({
   const [assigneeSearch, setAssigneeSearch] = useState('');
   const [assigneeSuggestions, setAssigneeSuggestions] = useState<User[]>([]);
 
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({
+    name: '',
+    description: '',
+    assignee: '',
+    storyPoints: '',
+    dueDate: ''
+  });
+  const [globalError, setGlobalError] = useState('');
 
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -92,6 +99,8 @@ const CreateTaskModal = ({
     setNewTask({ ...newTask, assignee: user.username });
     setAssigneeSearch('');
     setAssigneeSuggestions([]);
+    const error = validateField('assignee', user);
+    setErrors(prev => ({ ...prev, assignee: error }));
   };
 
   // Reset form quand modal se ferme
@@ -107,58 +116,102 @@ const CreateTaskModal = ({
       setSelectedAssignee(null);
       setAssigneeSearch('');
       setAssigneeSuggestions([]);
+      setErrors({
+        name: '',
+        description: '',
+        assignee: '',
+        storyPoints: '',
+        dueDate: ''
+      });
+      setGlobalError('');
     }
   }, [visible]);
 
-  const handleTitleChange = (text: string) => {
-    if (text.length <= MAX_TITLE_LENGTH) {
-      setNewTask({ ...newTask, name: text });
+  const validateField = (field: string, value: any) => {
+    switch (field) {
+      case 'name':
+        if (!value || !value.trim()) {
+          return 'Le titre est requis';
+        }
+        if (value.length > MAX_TITLE_LENGTH) {
+          return `Le titre ne doit pas dépasser ${MAX_TITLE_LENGTH} caractères`;
+        }
+        return '';
+      case 'description':
+        if (!value || !value.trim()) {
+          return 'La description est requise';
+        }
+        if (value.length > MAX_DESCRIPTION_LENGTH) {
+          return `La description ne doit pas dépasser ${MAX_DESCRIPTION_LENGTH} caractères`;
+        }
+        return '';
+      case 'assignee':
+        if (!selectedAssignee) {
+          return 'L\'assignation à un utilisateur est requise';
+        }
+        return '';
+      case 'storyPoints':
+        if (!value || value < 0) {
+          return 'Les points de story doivent être positifs';
+        }
+        if (!value) {
+          return 'Les points de story sont requis';
+        }
+        return '';
+      case 'dueDate':
+        if (!value) {
+          return 'La date d\'\u00e9chéance est requise';
+        }
+        return '';
     }
+    return '';
+  };
+
+  const handleFieldChange = (field: string, value: any) => {
+    if (field === 'name') {
+      if (value.length <= MAX_TITLE_LENGTH) {
+        setNewTask({ ...newTask, name: value });
+      }
+    } else if (field === 'description') {
+      if (value.length <= MAX_DESCRIPTION_LENGTH) {
+        setNewTask({ ...newTask, description: value });
+      }
+    } else if (field === 'storyPoints') {
+      setNewTask({ ...newTask, storyPoints: value });
+    } else if (field === 'dueDate') {
+      setNewTask({ ...newTask, dueDate: value });
+    }
+    
+    const error = validateField(field, value);
+    setErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  const handleTitleChange = (text: string) => {
+    handleFieldChange('name', text);
   };
 
   const handleDescriptionChange = (text: string) => {
-    if (text.length <= MAX_DESCRIPTION_LENGTH) {
-      setNewTask({ ...newTask, description: text });
-    }
+    handleFieldChange('description', text);
+  };
+
+  const validateForm = () => {
+    const newErrors = {
+      name: validateField('name', newTask.name),
+      description: validateField('description', newTask.description),
+      assignee: validateField('assignee', selectedAssignee),
+      storyPoints: validateField('storyPoints', newTask.storyPoints),
+      dueDate: validateField('dueDate', newTask.dueDate)
+    };
+
+    setErrors(newErrors);
+    return !Object.values(newErrors).some(error => error !== '');
   };
 
   const handleCreate = async () => {
-    // Validation des champs requis
-    const validationErrors = [];
-
-    if (!newTask.name.trim()) {
-      validationErrors.push('Le titre est requis');
-    } else if (newTask.name.length > MAX_TITLE_LENGTH) {
-      validationErrors.push(`Le titre ne doit pas dépasser ${MAX_TITLE_LENGTH} caractères`);
-    }
-
-    if (!newTask.description.trim()) {
-      validationErrors.push('La description est requise');
-    } else if (newTask.description.length > MAX_DESCRIPTION_LENGTH) {
-      validationErrors.push(`La description ne doit pas dépasser ${MAX_DESCRIPTION_LENGTH} caractères`);
-    }
-
-    if (!newTask.dueDate) {
-      validationErrors.push('La date d\'échéance est requise');
-    }
-
-    if (!selectedAssignee) {
-      validationErrors.push('L\'assignation à un utilisateur est requise');
-    }
-
-    if (newTask.storyPoints < 0) {
-      validationErrors.push('Les points de story doivent être positifs');
-    } else if (!newTask.storyPoints) {
-      validationErrors.push('Les points de story sont requis');
-    }
-
-    if (validationErrors.length > 0) {
-      setError(validationErrors.join('\n'));
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
-      setError(null);
+      setGlobalError('');
       await onCreate({
         ...newTask,
         assignee: selectedAssignee?.username || ''
@@ -166,9 +219,9 @@ const CreateTaskModal = ({
       onClose();
     } catch (err: any) {
       if (err.message.includes('authentification')) {
-        setError('Erreur d\'authentification. Veuillez vous reconnecter.');
+        setGlobalError('Erreur d\'authentification. Veuillez vous reconnecter.');
       } else {
-        setError(err.message || 'Erreur lors de la création de la tâche');
+        setGlobalError(err.message || 'Erreur lors de la création de la tâche');
       }
     }
   };
@@ -199,6 +252,12 @@ const CreateTaskModal = ({
             </Pressable>
           </View>
 
+          {globalError && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorMessage}>{globalError}</Text>
+            </View>
+          )}
+
           <ScrollView 
             ref={scrollViewRef}
             style={styles.modalContent}
@@ -214,7 +273,11 @@ const CreateTaskModal = ({
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Titre <Text style={styles.required}>*</Text></Text>
               <TextInput
-                style={[styles.input, styles.inputWithCounter]}
+                style={[
+                  styles.input, 
+                  styles.inputWithCounter,
+                  errors.name ? styles.inputError : null
+                ]}
                 value={newTask.name}
                 onChangeText={handleTitleChange}
                 placeholder="Titre de la tâche"
@@ -227,13 +290,19 @@ const CreateTaskModal = ({
               ]}>
                 {newTask.name.length}/{MAX_TITLE_LENGTH}
               </Text>
+              {errors.name ? <Text style={styles.errorText}>{errors.name}</Text> : null}
             </View>
 
             {/* Description */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Description <Text style={styles.required}>*</Text></Text>
               <TextInput
-                style={[styles.input, styles.textArea, styles.inputWithCounter]}
+                style={[
+                  styles.input, 
+                  styles.textArea, 
+                  styles.inputWithCounter,
+                  errors.description ? styles.inputError : null
+                ]}
                 value={newTask.description}
                 onChangeText={handleDescriptionChange}
                 placeholder="Description de la tâche"
@@ -248,6 +317,7 @@ const CreateTaskModal = ({
               ]}>
                 {newTask.description.length}/{MAX_DESCRIPTION_LENGTH}
               </Text>
+              {errors.description ? <Text style={styles.errorText}>{errors.description}</Text> : null}
             </View>
 
             {/* Assigné à */}
@@ -273,7 +343,10 @@ const CreateTaskModal = ({
             ) : (
               <>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    errors.assignee ? styles.inputError : null
+                  ]}
                   value={assigneeSearch}
                   onChangeText={setAssigneeSearch}
                   placeholder="Rechercher un utilisateur..."
@@ -305,6 +378,7 @@ const CreateTaskModal = ({
                 )}
               </>
             )}
+            {errors.assignee ? <Text style={styles.errorText}>{errors.assignee}</Text> : null}
 
             {/* Points de story */}
             <Text style={styles.inputLabel}>Points de story <Text style={styles.required}>*</Text></Text>
@@ -318,7 +392,7 @@ const CreateTaskModal = ({
                     pressed && globalStyles.buttonPressed,
                   ]}
                   onPress={() => {
-                    setNewTask({ ...newTask, storyPoints: points });
+                    handleFieldChange('storyPoints', points);
                     scrollToInput(300);
                   }}
                   disabled={isCreating}
@@ -358,30 +432,36 @@ const CreateTaskModal = ({
                   <DateOption
                     label="Aujourd'hui"
                     onPress={() => {
+                      const todayDate = displayDateToApi(getTodayString());
                       setNewTask({
                         ...newTask,
-                        dueDate: displayDateToApi(getTodayString()),
+                        dueDate: todayDate,
                       });
+                      handleFieldChange('dueDate', todayDate);
                       setShowDueDatePicker(false);
                     }}
                   />
                   <DateOption
                     label="Demain"
                     onPress={() => {
+                      const tomorrowDate = displayDateToApi(getTomorrowString());
                       setNewTask({
                         ...newTask,
-                        dueDate: displayDateToApi(getTomorrowString()),
+                        dueDate: tomorrowDate,
                       });
+                      handleFieldChange('dueDate', tomorrowDate);
                       setShowDueDatePicker(false);
                     }}
                   />
                   <DateOption
                     label="Dans 1 semaine"
                     onPress={() => {
+                      const nextWeekDate = displayDateToApi(getNextWeekString());
                       setNewTask({
                         ...newTask,
-                        dueDate: displayDateToApi(getNextWeekString()),
+                        dueDate: nextWeekDate,
                       });
+                      handleFieldChange('dueDate', nextWeekDate);
                       setShowDueDatePicker(false);
                     }}
                   />
@@ -389,6 +469,7 @@ const CreateTaskModal = ({
                     label="Aucune"
                     onPress={() => {
                       setNewTask({ ...newTask, dueDate: '' });
+                      handleFieldChange('dueDate', '');
                       setShowDueDatePicker(false);
                     }}
                   />
@@ -404,18 +485,7 @@ const CreateTaskModal = ({
                 </Pressable>
               </View>
             )}
-
-            {error ? (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>
-                  {error.split('\n').map((line, i) => (
-                    <Text key={i}>
-                      {i > 0 ? '\n' : ''}• {line}
-                    </Text>
-                  ))}
-                </Text>
-              </View>
-            ) : null}
+            {errors.dueDate ? <Text style={styles.errorText}>{errors.dueDate}</Text> : null}
 
             <Text style={styles.requiredFieldNote}>* Champs requis</Text>
 
@@ -538,14 +608,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorContainer: {
-    backgroundColor: colors.error + '15',
-    padding: spacing.sm,
+    backgroundColor: '#ffebee',
+    padding: 12,
     borderRadius: 8,
-    marginVertical: spacing.sm,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#dc3545',
+  },
+  errorMessage: {
+    color: '#dc3545',
+    fontSize: 14,
+    textAlign: 'center',
   },
   errorText: {
-    color: colors.error,
-    fontSize: 14,
+    color: '#dc3545',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  inputError: {
+    borderColor: '#dc3545',
+    borderWidth: 1,
   },
   requiredFieldNote: {
     fontSize: 12,
