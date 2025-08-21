@@ -267,7 +267,7 @@ const EditTaskModal = ({
             {/* Statut */}
             <Text style={styles.inputLabel}>Statut</Text>
             <View style={styles.statusSelector}>
-              {['TODO', 'IN_PROGRESS', 'IN_TEST', 'DONE'].map((status) => (
+              {['READY', 'IN_PROGRESS', 'IN_TEST', 'DONE'].map((status) => (
                 <Pressable
                   key={status}
                   style={({ pressed }) => [
