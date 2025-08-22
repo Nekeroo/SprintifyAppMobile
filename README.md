@@ -78,3 +78,5 @@ Celui-ci peut être testé localement avec la commande suivante :
 ```bash
 docker-compose up --build
 ```
+
+Une fois lancé, l'application sera accessible sur http://localhost:3000
