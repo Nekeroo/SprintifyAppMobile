@@ -66,3 +66,15 @@ npm run start
 * Authentification utilisateur
 * Recherche d'utilisateurs pour l'assignation
 * Visualiser les statistiques "principales" d'un sprint
+
+## CI/CD
+
+Le CI/CD est géré par GitHub Actions. Il permet de déployer l'application sur Coolify.
+Dans le fichier deploy.yml, on envoie une notification à Coolify pour déployer l'application depuis le repository GitHub.
+On utilise un Dockerfile pour build et lancer l'application.
+
+Celui-ci peut être testé localement avec la commande suivante : 
+
+```bash
+docker-compose up --build
+```
