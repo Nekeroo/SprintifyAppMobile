@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authService } from '@/services/auth';
 import type { LoginCredentials, RegisterCredentials, User } from '@/types/auth';
 
-type Status = 'idle' | 'loading' | 'succeeded' | 'failed';
+type Status = 'idle' | 'loading' | 'succeeded' | 'failed' | 'unauthenticated';
 
 interface AuthState {
   user: User | null;
@@ -98,7 +98,8 @@ const authSlice = createSlice({
       // logout
       .addCase(logout.fulfilled, (state) => {
         state.user = null;
-        state.status = 'idle';
+        state.status = 'unauthenticated';
+        state.error = null;
       });
   },
 });

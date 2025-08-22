@@ -25,7 +25,7 @@ function AuthScreen() {
   const { user, status, error } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
-    if (status !== "idle" && user) {
+    if (status === "succeeded" && user) {
       router.replace("/(tabs)/projects");
     }
   }, [user, status]);
