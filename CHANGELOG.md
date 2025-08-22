@@ -1,4 +1,33 @@
 
+<a name="v1.10.0"></a>
+## [v1.10.0](https://github.com/Nekeroo/SprintifyAppMobile/compare/v1.9.0...v1.10.0)
+
+> 2025-08-22
+
+### Fix
+
+* retrait component modal + modif labels status
+* page stats
+* update gestion erreurs
+* modificaiton bandeau app
+* focus des éléments dans la modale create task
+
+
+<a name="v1.9.0"></a>
+## [v1.9.0](https://github.com/Nekeroo/SprintifyAppMobile/compare/v1.8.0...v1.9.0)
+
+> 2025-08-21
+
+### Chore
+
+* update changelog
+
+### Fix
+
+* chargement de l'app
+* affichage status sprint
+
+
 <a name="v1.8.0"></a>
 ## [v1.8.0](https://github.com/Nekeroo/SprintifyAppMobile/compare/1.7.1...v1.8.0)
 
