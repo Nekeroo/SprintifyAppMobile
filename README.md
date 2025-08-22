@@ -6,8 +6,8 @@ https://github.com/Nekeroo/Sprintify
 
 ## Dernière version stable (LTS)
 
-La dernière version stable est la version 1.7.1.
-https://github.com/Nekeroo/SprintifyAppMobile/tree/1.7.1
+La dernière version stable est la version 1.10.0.
+https://github.com/Nekeroo/SprintifyAppMobile/tree/1.10.0
 
 ## Prérequis 
 
