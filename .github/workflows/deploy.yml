@@ -5,7 +5,7 @@ deploy:
     - name: Trigger Coolify deploy (API)
       run: |
         curl -fsSL \
-          -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
+          -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN_WEB_APP }}" \
           $COOLIFY_WEBHOOK_URL
       env:
         COOLIFY_WEBHOOK_URL: ${{ secrets.COOLIFY_WEBHOOK_URL }}
