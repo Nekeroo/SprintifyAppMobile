@@ -25,12 +25,12 @@ function AuthScreen() {
   const { user, status, error } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
-    if (status !== "loading" && user) {
+    if (status !== "idle" && user) {
       router.replace("/(tabs)/projects");
     }
   }, [user, status]);
 
-  if (status === "loading" || user) {
+  if (status === "idle") {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color="#007AFF" />
