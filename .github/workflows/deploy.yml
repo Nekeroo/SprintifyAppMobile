@@ -1,8 +1,11 @@
-deploy:
-  name: Deploy (Coolify)
-  runs-on: ubuntu-latest
-  steps:
-    - name: Trigger Coolify deploy (API)
+name: Deploy (Coolify)
+
+jobs:
+  deploy:
+    name: Deploy (Coolify)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify deploy (API)
       run: |
         curl -fsSL \
           -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN_WEB_APP }}" \
